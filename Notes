@@ -1,0 +1,91 @@
+In order to reason about the security of NFC tags, we need to keep in
+mind that there are different security models that can be applied to
+the scenario. There are lots of different attacks that we need to
+defend against and some might require tags to be smarter, or the
+phones to have extra features. Different uses of the NFC tag might
+also make some attacks more dangerous than others. In order to come up
+with a more comprehensive analysis we will consider several possible
+attacks and several security protocols to defend against them. Some
+will be inexpensive to implement but will allow certain types of
+attacks to go undetected, while others will be costly but will
+guarantee more security.
+
+Attacks:
+
+When we think about attacks on a location-confirming NFC tag, we can
+come up with several bad scenarios off the bat. We will enumerate
+these and give them names.
+
+1. Reusable Password - This is an attack that static tags are
+vulnerable against. In this scenario, one person can go and read the
+tag, and then put up either the password or the weblink online for
+anyone to use. For example, if a restaurant wanted to confirm that
+people actually went there before they are allowed to write a review
+they could make a simple password field in the review form. You only
+get the password if you scan the NFC tag inside the
+restaurant. However, one person that goes to that restaurant can scan
+the tag and put it up online for anyone to use. This way all someone
+has to do is google for the password and they can write a review
+without ever going to the restaurant.
+
+2. Multiple Scan - This is an attack on a changing password system. In
+this scenario we assume that the restaurant decided to do something a
+bit more secure and make the tag generate a new password every
+scan. This way you only allow one review per password so that someone
+can't just put it up online and make it accessible to everyone. The
+attack here involves a single person scanning the tag multiple times
+in a row to collect several passwords. These passwords can then be put
+online for people to access. Even though each one is a single-use
+code, the person can scan an unlimited number of times to generate as
+many as he wants.
+
+3. Man in the Middle - This is a more complicated attack that is a
+danger to any security protocol. In this scenario, we assume that a
+person scans the tag, and reports the message to a friend instead of
+using it. This friend then can do all of the actions that the original
+scanning user should have bene able to do. If there are other steps to
+the exchange (for instance the person that scanned has to provide some
+information), these steps will go through the outside party first so
+that any information can be supplied by the outside phone and
+forwarded to the tag through the device that is doing the
+scanning. This way, the man in the middle is the device that is
+actually scanning the tag and the two parties communicating are the
+tag and the outside user that is pretending that he is at the
+location.
+
+
+Security Requirements:
+
+Now that we have gone over some of the attacks on NFC tags, we can
+consider the different setups that we have for dealing with them. We
+will enumerate the setups in order from cheapest to most
+demanding. The key tradeoffs in the systems are cost and
+effectiveness. The cheaper setups will offer a weaker defense against
+possible attacks but require comparatively little resources, while the
+more demanding systems will offer a stronger defense but be way more
+resource heavy.
+
+1. Stupid Tag - This is the simplest case, and is unfortunately the
+most popular one. Here we assume that the tag cannot do any
+computation whatsoever. The devices that are used to scan the tag have
+no security features enabled and there aren't any TPM modules
+installed.
+
+2. Tag with Signing - In this case, we assume that the tag can
+cryptographically sign messages. The devices are still simple and
+don't have any TPM modules installed.
+
+3. Intensive Tag + Phone With TPM - This is the best case for
+security. Here we assume that tags can be as computationally intensive
+as a phone and that the devices scanning the tags have TPM modules
+installed that prevent users from accessing the data passed from the
+tag to the phone. This is the best case scenario in terms of security.
+
+
+Security Protocols:
+
+For each of the above requirements we will come up with a secure
+protocol that devices will use to communicate with a tag. After
+detailing the protocol we will examine the effectiveness of it in
+terms of defending against the attacks we listed in section X and
+analyze the cost of the system itself.
