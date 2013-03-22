@@ -22,7 +22,6 @@ import android.nfc.NdefMessage;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -72,7 +71,7 @@ public class SkeletonActivity extends Activity {
         super.onResume();
         Intent intent = getIntent();
         String action = intent.getAction();
-        System.out.println("I got an intent with the action: "+action);
+        
         NdefMessage msgs[] = null;
         mEditor.setText(action);
         
