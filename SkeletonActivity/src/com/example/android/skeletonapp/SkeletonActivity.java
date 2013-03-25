@@ -26,7 +26,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.EditText;
 
 /**
@@ -38,7 +37,9 @@ public class SkeletonActivity extends Activity {
     
     static final private int BACK_ID = Menu.FIRST;
     static final private int CLEAR_ID = Menu.FIRST + 1;
-
+    static final private int DISABLE_ID = Menu.FIRST + 2;
+    
+    private boolean scanEnabled=true;
     private EditText mEditor;
     
     public SkeletonActivity() {
@@ -55,10 +56,6 @@ public class SkeletonActivity extends Activity {
         // Find the text editor view inside the layout, because we
         // want to do various programmatic things with it.
         mEditor = (EditText) findViewById(R.id.editor);
-
-        // Hook up button presses to the appropriate event handler.
-        ((Button) findViewById(R.id.back)).setOnClickListener(mBackListener);
-        ((Button) findViewById(R.id.clear)).setOnClickListener(mClearListener);
         
         mEditor.setText(getText(R.string.main_label));
     }
@@ -75,15 +72,16 @@ public class SkeletonActivity extends Activity {
         NdefMessage msgs[] = null;
         mEditor.setText(action);
         
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
-            Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) {
+            mEditor.setText("We scanned a tag");
+        	
+        	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
             if (rawMsgs != null) {
                 msgs = new NdefMessage[rawMsgs.length];
                 for (int i = 0; i < rawMsgs.length; i++) {
                     msgs[i] = (NdefMessage) rawMsgs[i];
                 }
             }
-            System.out.println(msgs);
         }
     }
 
@@ -99,7 +97,7 @@ public class SkeletonActivity extends Activity {
         // given them shortcuts.
         menu.add(0, BACK_ID, 0, R.string.back).setShortcut('0', 'b');
         menu.add(0, CLEAR_ID, 0, R.string.clear).setShortcut('1', 'c');
-
+        menu.add(0, DISABLE_ID, 0, R.string.disable).setShortcut('2','s');
         return true;
     }
 
@@ -128,26 +126,23 @@ public class SkeletonActivity extends Activity {
         case CLEAR_ID:
             mEditor.setText("");
             return true;
+        case DISABLE_ID:
+        	disableScan();
+        	return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-
-    /**
-     * A call-back for when the user presses the back button.
-     */
-    OnClickListener mBackListener = new OnClickListener() {
-        public void onClick(View v) {
-            finish();
-        }
+    
+    OnClickListener mDisableListener = new OnClickListener() {
+		public void onClick(View v) {
+			disableScan();
+		}
     };
-
-    /**
-     * A call-back for when the user presses the clear button.
-     */
-    OnClickListener mClearListener = new OnClickListener() {
-        public void onClick(View v) {
-            mEditor.setText("");
-        }
-    };
+    
+    public void disableScan() {
+    	mEditor.setText("Tag scan is disabled");
+		scanEnabled=false;
+    }
 }
+
