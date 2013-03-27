@@ -76,10 +76,11 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 		cPath:=clipQuotes(records[key].Path)
 		cQuery:=clipQuotes(records[key].RawQuery)
 		if (len(cQuery)!=0) {
-			fmt.Fprintf(w,"%s\n",records[key].Host+cPath+"?"+cQuery)
+			fmt.Fprintf(w,"Request sent for : %s\n",records[key].Host+cPath+"?"+cQuery)
 		} else {
-			fmt.Fprintf(w,"%s\n",records[key].Host+cPath+cQuery)
+			fmt.Fprintf(w,"Request sent for: %s\n",records[key].Host+cPath+cQuery)
 		}
+		fmt.Fprintf(w,"Request sent at : %#v\n",records[key].Time.String())
 		fmt.Fprintf(w,"</div></div>")
 	}
 }
