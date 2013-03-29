@@ -16,6 +16,9 @@
 
 package com.example.android.skeletonapp;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.nfc.NdefMessage;
@@ -73,8 +76,11 @@ public class SkeletonActivity extends Activity {
         mEditor.setText(action);
         
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) {
-            mEditor.setText("We scanned a tag");
+        	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS",Locale.US);
+        	mEditor.setText("We scanned a tag at time :"+sdf);
         	
+        	
+        		
         	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
             if (rawMsgs != null) {
                 msgs = new NdefMessage[rawMsgs.length];
