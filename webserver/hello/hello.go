@@ -50,23 +50,25 @@ func recordRequest(w http.ResponseWriter, r *http.Request) {
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
 	
-	c := appengine.NewContext(r)
-    
-	req := RequestRecord{
-    RemoteAddr:r.RemoteAddr,
-	Host:r.Host,
-	Method:r.Method,
-	Header:stringHeader,
-	Path:stringpath,
-	RawQuery:rawquery,
-	URL:stringURL,
-	Time:time.Now(),
-	}
-	
-	_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
+	if (stringpath=="\"/submit\"") {
+		c := appengine.NewContext(r)
+		
+		req := RequestRecord{
+		RemoteAddr:r.RemoteAddr,
+		Host:r.Host,
+		Method:r.Method,
+		Header:stringHeader,
+		Path:stringpath,
+		RawQuery:rawquery,
+		URL:stringURL,
+		Time:time.Now(),
+		}
+		
+		_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
