@@ -24,24 +24,35 @@ type RequestRecord struct {
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
 
 func init() {
-	http.HandleFunc("/",logprinter)
-	http.HandleFunc("/log",root)
+	http.HandleFunc("/",root)
+	http.HandleFunc("/log",logprinter)
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
+	recordRequest(w,r)
 	if err := logTemplate.Execute(w,nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func logprinter(w http.ResponseWriter, r *http.Request) {
-	
+	recordRequest(w,r)
+	printLogToHTML(w,r)
+}
+
+func clipQuotes(x string) string {
+	return strings.Join(strings.Split(x,"")[1:len(x)-1],"")
+}
+
+func recordRequest(w http.ResponseWriter, r *http.Request) {
 	stringURL := fmt.Sprintf("%#v",r.URL)
 	stringHeader := fmt.Sprintf("%#v",r.Header)
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
+	
 	c := appengine.NewContext(r)
-    req := RequestRecord{
+    
+	req := RequestRecord{
     RemoteAddr:r.RemoteAddr,
 	Host:r.Host,
 	Method:r.Method,
@@ -51,40 +62,52 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 	URL:stringURL,
 	Time:time.Now(),
 	}
+	
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
         return
 	}
-	
-    q := datastore.NewQuery("Record").Order("-Time").Limit(10)
+}
+
+func printLogToHTML(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	q := datastore.NewQuery("Record").Order("-Time").Limit(100)
     records := make([]RequestRecord, 0, 10)
-    if _, err := q.GetAll(c, &records); err != nil {
+    
+	if _, err := q.GetAll(c, &records); err != nil {
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
+	
 	fmt.Fprintf(w,"<html><head>")
 	fmt.Fprintf(w,"<link rel=\"stylesheet\"")
 	fmt.Fprintf(w,"href='templates/log.css'/>")
 	fmt.Fprintf(w,"</head>")
+	fmt.Fprintf(w,"<h3>Request Log</h3>")
+	counter := 1
 	for key := range records {
-		fmt.Fprintf(w,"<div class=\"match\">")
-		fmt.Fprintf(w,"<div><span class=\"label\">")
-		fmt.Fprintf(w,"%s",records[key].RemoteAddr)
-		fmt.Fprintf(w,"</span></div>")
-		fmt.Fprintf(w,"<div class=\"contents\">")
 		cPath:=clipQuotes(records[key].Path)
 		cQuery:=clipQuotes(records[key].RawQuery)
-		if (len(cQuery)!=0) {
-			fmt.Fprintf(w,"Request sent for : %s\n",records[key].Host+cPath+"?"+cQuery)
-		} else {
-			fmt.Fprintf(w,"Request sent for: %s\n",records[key].Host+cPath+cQuery)
+		if (cPath == "/submit") {
+			fmt.Fprintf(w,"<div class=\"match\">")
+			fmt.Fprintf(w,"<div><span class=\"label\">")
+			fmt.Fprintf(w,"%d. Remote Address: %s",
+				counter,records[key].RemoteAddr)
+			fmt.Fprintf(w,"</span></div>")
+			fmt.Fprintf(w,"<div class=\"contents\">")
+			
+			if (len(cQuery)!=0) {
+				fmt.Fprintf(w,"Request sent for : %s\n",
+					records[key].Host+cPath+"?"+cQuery)
+			} else {
+				fmt.Fprintf(w,"Request sent for: %s\n",
+					records[key].Host+cPath+cQuery)
+			}
+			fmt.Fprintf(w,"Request sent at : %#v\n",
+				records[key].Time.String())
+			fmt.Fprintf(w,"</div></div>")
+			counter++
 		}
-		fmt.Fprintf(w,"Request sent at : %#v\n",records[key].Time.String())
-		fmt.Fprintf(w,"</div></div>")
 	}
-}
-
-func clipQuotes(x string) string {
-	return strings.Join(strings.Split(x,"")[1:len(x)-1],"")
 }

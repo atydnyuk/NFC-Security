@@ -2,69 +2,31 @@
 <title>NFC Webserver Log</title>
 <head>
     <link rel="stylesheet" href='templates/log.css' />
+	<link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" rel="stylesheet">
+    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap-responsive.css" rel="stylesheet">
 </head>
 
-<body>
-  <h3>Webserver contact log</h3>
-  <p>
-	Every time that a device contacts the webserver and says that it
-	has a code for it that it got from an NFC tag, that message gets
-	entered into the log. These log messages signify attempts to
-	submit a scan. In order to differentiate them, the messages that
-	are confirmed to be valid will be hilighted in green. Messages
-	that are not accepted as scans will be grey, and rejected requests
-	will be red.
-  </p>
-  <div>
-	<div class="match">
-	  <div>
-		<span class="label">src: 127.0.0.1</span>
-	  </div>
-	  <div class="contents">
-		This is some stuff that was sent by this person!!
-	  </div>
+<!-- Begin page content -->
+<div id="wrap">
+  <div class="container">
+	<div class="page-header">
+      <h1>NFC Webserver</h1>
 	</div>
+	<p>
+	  Every time that a device contacts the webserver at address
+	  "/submit" we assume that it is a device that has scanned an NFC
+	  tag. The device submits the code that it was given by the tag in
+	  the request, and this is recorded in our log. If the code is
+	  valid, then the device gets a code sent to it that will allow
+	  that device to confirm its scan of the tag. The webserver will
+	  in turn store that information so that the same device will not
+	  get multiple codes.
+	</p>
+	<p><a href="/log"> View the log here </a></p> 
   </div>
-  <div>
-	<div class="match">
-	  <div>
-		<span class="label">src: 127.0.0.1</span>
-	  </div>
-	  <div class="contents">
-		This is some garbage that was sent by this person!!
-	  </div>
-	</div>
-  </div>
-  <div>
-	<div class="match">
-	  <div>
-		<span class="label">src: 127.0.0.1</span>
-	  </div>
-	  <div class="contents">
-		This is something that was sent by this person!!
-	  </div>
-	</div>
-  </div>
-  <div>
-	<div class="match">
-	  <div>
-		<span class="label">src: 127.0.0.1</span>
-	  </div>
-	  <div class="contents">
-		This is some other stuff that was sent by this person!!
-	  </div>
-	</div>
-  </div>
-  <div>
-	<div class="match">
-	  <div>
-		<span class="label">src: 127.0.0.1</span>
-	  </div>
-	  <div class="contents">
-		This is some more stuff that was sent by this person!!
-	  </div>
-	</div>
-  </div>
-</body>
+
+  
+</div>
+
 
 </html>

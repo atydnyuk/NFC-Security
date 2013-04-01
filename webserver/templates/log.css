@@ -7,6 +7,13 @@ body {
     margin: 1em 3em;
 }
 
+#wrap {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -60px;
+}
+
 #searcharea {
     width: 30em;
     margin: auto;
