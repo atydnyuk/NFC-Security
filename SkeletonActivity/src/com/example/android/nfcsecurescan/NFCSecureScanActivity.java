@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.example.android.skeletonapp;
+package com.example.android.nfcsecurescan;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
+
+import com.example.android.nfcsecurescanapp.R;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -36,7 +38,7 @@ import android.widget.EditText;
  * activity. Inside of its window, it places a single view: an EditText that
  * displays and edits some internal text.
  */
-public class SkeletonActivity extends Activity {
+public class NFCSecureScanActivity extends Activity {
     
     static final private int BACK_ID = Menu.FIRST;
     static final private int CLEAR_ID = Menu.FIRST + 1;
@@ -45,7 +47,7 @@ public class SkeletonActivity extends Activity {
     private boolean scanEnabled=true;
     private EditText mEditor;
     
-    public SkeletonActivity() {
+    public NFCSecureScanActivity() {
     }
 
     /** Called with the activity is first created. */
