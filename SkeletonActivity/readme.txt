@@ -2,6 +2,7 @@ NFC Secure Scan
 ~~~~~~~~~~~~~~~~~~~~
 
 I used the skeleton app as a base to build this NFC tag scanning app.
+Trying to move stuff around.
 
 The files contained here:
 
