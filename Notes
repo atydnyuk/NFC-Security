@@ -179,4 +179,4 @@ Therefore, while the absence of a TPM forces us to be a bit less
 demanding, we can still effectively prevent man in the middle attacks
 from happening.
 
-3. 
+3. Simple tag with no computation + phone without TPM
