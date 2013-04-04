@@ -30,16 +30,13 @@
          is available to it.  Note the use of the "id" attribute, which
          allows us to find this object from the Java code. -->
 
-    <EditText
-        android:id="@+id/editor"
+    <TextView
+        android:id="@+id/textView1"
         android:layout_width="match_parent"
-        android:layout_height="0dip"
-        android:layout_weight="0.75"
-        android:freezesText="true"
-        android:inputType="textCapSentences" >
-
-        <requestFocus />
-    </EditText>
+        android:layout_height="wrap_content"
+        android:layout_weight="0.01"
+        android:text="Large Text"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <!-- Next view is another linear layout manager, now horizontal.  We
          give it a custom background; see colors.xml for the definition
