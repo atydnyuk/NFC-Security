@@ -17,6 +17,7 @@
 package com.example.android.nfcsecurescan;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 import com.example.android.nfcsecurescanapp.R;
@@ -24,6 +25,7 @@ import com.example.android.nfcsecurescanapp.R;
 import android.app.Activity;
 import android.content.Intent;
 import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -31,7 +33,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.EditText;
+import android.widget.TextView;
 
 /**
  * This class provides a basic demonstration of how to write an Android
@@ -45,7 +47,7 @@ public class NFCSecureScanActivity extends Activity {
     static final private int DISABLE_ID = Menu.FIRST + 2;
     
     private boolean scanEnabled=true;
-    private EditText mEditor;
+    private TextView tv1;
     
     public NFCSecureScanActivity() {
     }
@@ -58,11 +60,7 @@ public class NFCSecureScanActivity extends Activity {
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.skeleton_activity);
 
-        // Find the text editor view inside the layout, because we
-        // want to do various programmatic things with it.
-        mEditor = (EditText) findViewById(R.id.editor);
-        
-        mEditor.setText(getText(R.string.main_label));
+        tv1 = (TextView) findViewById(R.id.textView1);
     }
 
     /**
@@ -75,11 +73,11 @@ public class NFCSecureScanActivity extends Activity {
         String action = intent.getAction();
         
         NdefMessage msgs[] = null;
-        mEditor.setText(action);
-        
+       
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) {
-        	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS",Locale.US);
-        	mEditor.setText("We scanned a tag at time :"+sdf);
+        	Date now = new Date();
+        	
+        	
         	
         	
         		
@@ -90,6 +88,14 @@ public class NFCSecureScanActivity extends Activity {
                     msgs[i] = (NdefMessage) rawMsgs[i];
                 }
             }
+            
+            NdefRecord record = msgs[0].getRecords()[0];
+
+            byte[] payload = record.getPayload();
+            String text = new String(payload);
+            text = text.substring(3, text.length()); //strip "en" from beginning
+            tv1.setText("We scanned a tag at time :"+now.toString()+ 
+            			" data was: " + text);
         }
     }
 
@@ -118,7 +124,7 @@ public class NFCSecureScanActivity extends Activity {
 
         // Before showing the menu, we need to decide whether the clear
         // item is enabled depending on whether there is text to clear.
-        menu.findItem(CLEAR_ID).setVisible(mEditor.getText().length() > 0);
+        menu.findItem(CLEAR_ID).setVisible(tv1.getText().length() > 0);
         return true;
     }
 
@@ -132,7 +138,7 @@ public class NFCSecureScanActivity extends Activity {
             finish();
             return true;
         case CLEAR_ID:
-            mEditor.setText("");
+            tv1.setText("");
             return true;
         case DISABLE_ID:
         	disableScan();
@@ -149,7 +155,7 @@ public class NFCSecureScanActivity extends Activity {
     };
     
     public void disableScan() {
-    	mEditor.setText("Tag scan is disabled");
+    	tv1.setText("Tag scan is disabled");
 		scanEnabled=false;
     }
 }
