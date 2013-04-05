@@ -16,9 +16,32 @@
 
 package com.example.android.nfcsecurescan;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
 
 import com.example.android.nfcsecurescanapp.R;
 
@@ -56,10 +79,8 @@ public class NFCSecureScanActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.skeleton_activity);
-
         tv1 = (TextView) findViewById(R.id.textView1);
     }
 
@@ -70,17 +91,10 @@ public class NFCSecureScanActivity extends Activity {
     protected void onResume() {
         super.onResume();
         Intent intent = getIntent();
-        String action = intent.getAction();
-        
         NdefMessage msgs[] = null;
        
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) {
         	Date now = new Date();
-        	
-        	
-        	
-        	
-        		
         	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
             if (rawMsgs != null) {
                 msgs = new NdefMessage[rawMsgs.length];
@@ -96,10 +110,33 @@ public class NFCSecureScanActivity extends Activity {
             text = text.substring(3, text.length()); //strip "en" from beginning
             tv1.setText("We scanned a tag at time :"+now.toString()+ 
             			" data was: " + text);
+            
+            
+            try {
+				submitMessageToWeb(text);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				tv1.setText(tv1.getText()+"HTTP FAIL"+e.getMessage());
+			}
         }
     }
 
-    /**
+    private void submitMessageToWeb(String text) throws IOException {
+    	HttpClient httpclient = new DefaultHttpClient();
+        HttpPost httppost = new HttpPost("http://nfcsecurity.appspot.com/submit");
+
+        List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
+        nameValuePairs.add(new BasicNameValuePair("password", text));
+        httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+
+        // Execute HTTP Post Request
+        HttpResponse response = httpclient.execute(httppost);
+
+        tv1.setText(tv1.getText()+"response : "+response.toString());
+	}
+
+	/**
      * Called when your activity's options menu needs to be created.
      */
     @Override
@@ -158,5 +195,7 @@ public class NFCSecureScanActivity extends Activity {
     	tv1.setText("Tag scan is disabled");
 		scanEnabled=false;
     }
+    
+    
 }
 
