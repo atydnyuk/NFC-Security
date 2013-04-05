@@ -6,7 +6,5 @@ api_version: go1
 handlers:
 - url: /javascript
   static_dir: javascript
-- url: /templates
-  static_dir: templates
 - url: /.*
   script: _go_app
