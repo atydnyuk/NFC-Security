@@ -13,12 +13,10 @@ import (
 type RequestRecord struct {
 	RemoteAddr string
 	Host string
-	Method string
-	Header string
 	Path string
 	RawQuery string
-	URL string
 	Time time.Time
+	Password string
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
@@ -45,23 +43,19 @@ func clipQuotes(x string) string {
 }
 
 func recordRequest(w http.ResponseWriter, r *http.Request) {
-	stringURL := fmt.Sprintf("%#v",r.URL)
-	stringHeader := fmt.Sprintf("%#v",r.Header)
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
-	
+	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	if (stringpath=="\"/submit\"") {
 		c := appengine.NewContext(r)
 		
 		req := RequestRecord{
 		RemoteAddr:r.RemoteAddr,
 		Host:r.Host,
-		Method:r.Method,
-		Header:stringHeader,
 		Path:stringpath,
 		RawQuery:rawquery,
-		URL:stringURL,
 		Time:time.Now(),
+		Password:passwordstring,
 		}
 		
 		_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
@@ -83,8 +77,8 @@ func printLogToHTML(w http.ResponseWriter, r *http.Request) {
     }
 	
 	fmt.Fprintf(w,"<html><head>")
-	fmt.Fprintf(w,"<link rel=\"stylesheet\"")
-	fmt.Fprintf(w,"href='templates/log.css'/>")
+	fmt.Fprintf(w,"<link rel=\"stylesheet\" ")
+	fmt.Fprintf(w,"href=\"javascript/log.css\"/>")
 	fmt.Fprintf(w,"</head>")
 	fmt.Fprintf(w,"<h3>Request Log</h3>")
 	counter := 1
@@ -108,6 +102,10 @@ func printLogToHTML(w http.ResponseWriter, r *http.Request) {
 			}
 			fmt.Fprintf(w,"Request sent at : %#v\n",
 				records[key].Time.String())
+			if (len(records[key].Password)>0) {
+				fmt.Fprintf(w,"Password is : %s\n",
+					records[key].Password)
+			}
 			fmt.Fprintf(w,"</div></div>")
 			counter++
 		}

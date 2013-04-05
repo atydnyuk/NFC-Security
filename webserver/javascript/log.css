@@ -1,0 +1,196 @@
+/** STOLEN FROM LIVEGREP **/
+/** this is actually their codesearch.css **/
+/** livegrep.com **/
+/** I swear I will change this later. Mostly to remove all of the stuff that I dont need **/
+
+body {
+    margin: 1em 3em;
+}
+
+#wrap {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -60px;
+}
+
+#searcharea {
+    width: 30em;
+    margin: auto;
+    margin-bottom: 1em;
+    padding: 5px;
+    border: 1px solid black;
+}
+
+#searcharea p {
+    margin: 10px;
+}
+
+#searchinput {
+    float: left;
+}
+
+#errorbox {
+    float: right;
+}
+
+#regex-error {
+    display: none;
+}
+
+#errortext {
+    color: red;
+}
+
+#searchtimebox {
+    display: none
+}
+
+#resultbox {
+    width: 100%;
+    border: 1px solid black;
+    padding: 5px;
+}
+
+.label {
+    font-weight: bold;
+}
+
+.clear {
+    clear: both;
+}
+
+.match {
+    margin: 1em 2em;
+}
+
+.match .label {
+    font-family: monospace;
+}
+
+.match .more {
+    font-size: 90%;
+}
+
+.match .lno {
+    width: 4em;
+    padding-right: 1em;
+}
+
+.matchline .lno {
+    font-weight: bold;
+}
+
+.match .contents {
+    white-space: pre;
+    font-family: monospace;
+    background: #eee;
+    border: 1px solid black;
+    margin-left: 1em;
+    padding: 3px;
+}
+
+.match .matchstr {
+    font-weight: bold;
+}
+
+#countarea {
+    float: right;
+}
+
+.what {
+    font-size: 80%;
+    color: #999;
+    padding-bottom: 5px;
+}
+
+#header li {
+    display: inline;
+}
+
+#header li:before {
+    content: "∙";
+    color: #999;
+    text-decoration: none;
+    margin: 5px;
+}
+
+#header li:first-child:before {
+    content: ""
+}
+
+#header .first {}
+
+#header {
+    font-size: 80%;
+    color: #999;
+    margin: auto;
+    width: 40em;
+}
+
+#feedback {
+    border: 3px double black;
+    background: white;
+    z-index: 1;
+    position: absolute;
+    display: none;
+}
+
+#feedback .spinner {
+    display: none;
+}
+
+#feedback input {
+    margin: 5px;
+}
+
+#feedback button {
+    margin: 5px;
+}
+
+#feedback textarea {
+    margin: 5px;
+}
+
+#feedback .submit {
+    float: right;
+}
+
+#feedback {
+    font-size: 80%;
+    color: #999;
+    margin: 5px;
+}
+
+#feedback .result {
+    font-size: 100%;
+}
+
+#permalink {
+    font-size: 80%;
+}
+
+#resultarea {
+    display: none;
+}
+
+.contexts {
+    font-size: 90%;
+    padding-top: 5px;
+}
+
+.contexts ul {
+    display: inline;
+    padding-left: 0;
+}
+
+.contexts li {
+    display: inline;
+    list-style: none;
+    margin: 0em 1em;
+    padding: 3px;
+}
+
+.contexts li.selected {
+    border-bottom: 1px solid black;
+}
