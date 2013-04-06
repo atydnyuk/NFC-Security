@@ -70,6 +70,8 @@ public class NFCSecureScanActivity extends Activity {
     static final private int DISABLE_ID = Menu.FIRST + 2;
     
     private boolean scanEnabled=true;
+    private String messageScanned ="";
+    private String serverReply="";
     private TextView tv1;
     
     public NFCSecureScanActivity() {
@@ -106,28 +108,51 @@ public class NFCSecureScanActivity extends Activity {
             NdefRecord record = msgs[0].getRecords()[0];
 
             byte[] payload = record.getPayload();
-            String text = new String(payload);
-            text = text.substring(3, text.length()); //strip "en" from beginning
+            messageScanned = new String(payload);
+            
+            //strip "en" from beginning	
+            messageScanned = messageScanned.substring(3, messageScanned.length()); 
+            
             tv1.setText("We scanned a tag at time :"+now.toString()+ 
-            			" data was: " + text);
+            			" data was: " + messageScanned +"\n");
             
-            
+            //Now that we have scanned the message, we want to send it
+            //to the webservice.
             try {
-				submitMessageToWeb(text);
+				submitMessageToWeb();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
-				tv1.setText(tv1.getText()+"HTTP FAIL"+e.getMessage());
+				tv1.setText("Failed to submit tag to webserver. It might be down.");
 			}
+            
+            //now that we have submitted the tag, we want to write the response
+            //that we received from the server to the tag that we scanned
+            //we prompt the user to scan the tag again
+            
+            tv1.setText("We have received a response from the webserver, " +
+            		"so in order to complete the protocol we need to scan " +
+            		"the tag again so that the next person can use it. Note: " +
+            		"if you do not complete this step your scan will be invalid.");
+            
+            writeServerReplyToTag();
+            
+            
         }
     }
 
-    private void submitMessageToWeb(String text) throws IOException {
+    private void writeServerReplyToTag() {
+		tv1.setText(tv1.getText() + "\nWe are ready to write, " +
+				"please scan the tag now.");
+		
+		
+	}
+
+	private void submitMessageToWeb() throws IOException {
     	HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost("http://nfcsecurity.appspot.com/submit");
 
         List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-        nameValuePairs.add(new BasicNameValuePair("password", text));
+        nameValuePairs.add(new BasicNameValuePair("password", messageScanned));
         httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 
         // Execute HTTP Post Request
