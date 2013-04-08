@@ -8,6 +8,8 @@ import (
 	"appengine/datastore"
 	"time"
 	"strings"
+	"crypto/rand"
+	"io"
 )
 
 type RequestRecord struct {
@@ -20,10 +22,12 @@ type RequestRecord struct {
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
+var tagstring = "lemurtwelve"
 
 func init() {
 	http.HandleFunc("/",root)
 	http.HandleFunc("/log",logprinter)
+	http.HandleFunc("/submit",submitcode)
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -34,11 +38,40 @@ func root(w http.ResponseWriter, r *http.Request) {
 }
 
 func logprinter(w http.ResponseWriter, r *http.Request) {
-	recordRequest(w,r)
 	printLogToHTML(w,r)
 }
 
-func clipQuotes(x string) string {
+func submitcode(w http.ResponseWriter, r *http.Request) {
+	recordRequest(w,r)
+	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
+	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
+	responsestring,accepted := generateResponse(passwordstring)
+	if (accepted) {
+		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
+			responsestring)
+	} else {
+		fmt.Fprintf(w,"REJECTED we want %s. State of the tag might be invalid.\n",tagstring)
+	}
+}
+
+func generateResponse(pw string) (string,bool) {
+	if (trimQuotes(pw)==tagstring) {
+		b := make([]byte, 15)
+		n, err := io.ReadFull(rand.Reader, b)
+		if n != len(b) || err != nil {
+			fmt.Println("error:", err)
+			return "",false
+		}		
+		newpass := string(b)
+		//we expect the newpass to be written to the tag
+		//so it is the next password that we expect
+		tagstring=newpass
+		return newpass,true
+	} 
+	return "",false
+}
+
+func trimQuotes(x string) string {
 	return strings.Join(strings.Split(x,"")[1:len(x)-1],"")
 }
 
@@ -46,24 +79,22 @@ func recordRequest(w http.ResponseWriter, r *http.Request) {
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
-	if (stringpath=="\"/submit\"") {
-		c := appengine.NewContext(r)
-		
-		req := RequestRecord{
-		RemoteAddr:r.RemoteAddr,
-		Host:r.Host,
-		Path:stringpath,
-		RawQuery:rawquery,
-		Time:time.Now(),
-		Password:passwordstring,
-		}
-		
-		_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	c := appengine.NewContext(r)
+	
+	req := RequestRecord{
+	RemoteAddr:r.RemoteAddr,
+	Host:r.Host,
+	Path:stringpath,
+	RawQuery:rawquery,
+	Time:time.Now(),
+	Password:passwordstring,
 	}
+		
+	_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}	
 }
 
 func printLogToHTML(w http.ResponseWriter, r *http.Request) {
@@ -83,8 +114,8 @@ func printLogToHTML(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w,"<h3>Request Log</h3>")
 	counter := 1
 	for key := range records {
-		cPath:=clipQuotes(records[key].Path)
-		cQuery:=clipQuotes(records[key].RawQuery)
+		cPath:=trimQuotes(records[key].Path)
+		cQuery:=trimQuotes(records[key].RawQuery)
 		if (cPath == "/submit") {
 			fmt.Fprintf(w,"<div class=\"match\">")
 			fmt.Fprintf(w,"<div><span class=\"label\">")
