@@ -79,21 +79,22 @@ possible attacks but require comparatively little resources, while the
 more demanding systems will offer a stronger defense but be way more
 resource heavy.
 
-1. Stupid Tag - This is the simplest case, and is unfortunately the
-most popular one. Here we assume that the tag cannot do any
-computation whatsoever. The devices that are used to scan the tag have
-no security features enabled and there aren't any TPM modules
-installed.
+1. Intensive Tag + Phone With TPM - This is the best case for
+security. Here we assume that tags can be as computationally intensive
+as a phone and that the devices scanning the tags have TPM modules
+installed that prevent users from accessing the data passed from the
+tag to the phone. This is the best case scenario in terms of security.
 
 2. Tag with Signing - In this case, we assume that the tag can
 cryptographically sign messages. The devices are still simple and
 don't have any TPM modules installed.
 
-3. Intensive Tag + Phone With TPM - This is the best case for
-security. Here we assume that tags can be as computationally intensive
-as a phone and that the devices scanning the tags have TPM modules
-installed that prevent users from accessing the data passed from the
-tag to the phone. This is the best case scenario in terms of security.
+3. Stupid Tag - This is the simplest case, and is unfortunately the
+most popular one. Here we assume that the tag cannot do any
+computation whatsoever. The devices that are used to scan the tag have
+no security features enabled and there aren't any TPM modules
+installed.
+
 
 
 Security Protocols:
@@ -110,11 +111,14 @@ Here is a rundown of the protocols:
 
 a. The phone sends (IMEI) to the tag
 b. Tag replies with signed(IMEI)
-c. The app sends the signed(IMEI) off to the webserver
-d. The webserver confirms the message and replies with a time-sensitive 
-   code that is tailored to allow the phone with that IMEI access.
-e. As the phone attempts to use the code, the app communicates with the TPM
-   to make sure that the IMEI is correct.
+c. The app signs this and sends the appsigned(signed(IMEI)) off 
+   to the webserver
+d. The webserver confirms the message and replies with a 
+   time-sensitive code that is tied to the IMEI signed 
+   with the app's key
+e. As the phone attempts to use the code, the app communicates 
+   with the TPM to unencrypt the message and make sure that the 
+   IMEI is correct.
 
 This particular protocol is the most secure and also the most
 costly. We will go over some example attacks and how this protocol
@@ -155,28 +159,54 @@ assumptions on the tag's state.
 
 2. Tag with signing + phone without TPM
 
-Without the TPM, the protocol is pretty much the same as above, except
-the phone can't know for sure that its IMEI matches the one that was
-signed by the tag. Even though the device can potentially be made to
-lie about its IMEI, it would have to do so at the last step of the
-protocol. This means that for the attack to work, another phone must
-have gone through every other step of the protocol and then forwarded
-the webserver's message to this device. The device then has to spoof
-that other phone's IMEI in order to fool the webserver into thinking
-that it is the phone that it has been communicating with all along.
+a. The phone sends (IMEI) to the tag
+b. Tag replies with signed(IMEI)
+c. The app signs this and sends the appsigned(signed(IMEI)) off 
+   to the webserver
+d. The webserver confirms the message and replies with a 
+   time-sensitive code that is tied to the IMEI signed 
+   with the app's key
 
-All of this is very difficult to do in practice and is eventually
-proved futile assuming the phone plans to communicate with more NFC
-tags in the future. Since the code given by the webserver is time
-sensitive, there is a timelimit on the code exchange, and there is
-also considerable hacking that has to be done in order to convince the
-application that the phone's IMEI is not what it actually is. Even
-then, the next time that this phone communicates with a tag, the
-application will expect the same IMEI to be sent. If a different one
-is sent, the previous transaction can be invalidated.
+Attacker's new possibilities:
+i. sign messages with app's key
+ii. see the messages that the tag sends to the phone
+iii. 
+
+
+Without the TPM, the protocol is pretty much the same as above, except
+the application can't know for sure that the phone's IMEI matches the
+one that was signed by the tag. An attacker can trick the application
+into confirming a false IMEI. However, for this to happen, another
+phone has to go through all of the earlier steps in the protocol and
+then forward the webserver's message to this device. The device then
+has to spoof that other phone's IMEI in order to fool the app into
+thinking that it is the phone that the webserver has been
+communicating with all along.
+
+All of this is very difficult to do in practice, and for most
+applications I would argue that it is acceptable because as long as
+one phone has to go through the rest of the protocol, this attack is
+not that dangerous. There is also a time limit on the code exchange,
+and there is considerable hacking that has to be done in order to
+convince the application that the phone's IMEI is not what it actually
+is.
 
 Therefore, while the absence of a TPM forces us to be a bit less
 demanding, we can still effectively prevent man in the middle attacks
 from happening.
 
 3. Simple tag with no computation + phone without TPM
+
+This is the scenario with the least cost and the least security. This
+is also unfortunately the most realistic use case of this technology.
+
+In this scenario the protocol has to be a bit more complicated. We
+know that we cannot prevent all of the possible attacks, so we try to
+prevent the most common and the most dangerous ones.
+
+
+THINGS TO WORK ON:
+
+get the webserver to accept IMEI
+get the application to sent the IMEI with the request
+get the webserver to make checks 
