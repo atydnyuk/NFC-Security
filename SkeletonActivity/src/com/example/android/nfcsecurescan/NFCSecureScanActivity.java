@@ -45,11 +45,16 @@ import org.apache.http.params.HttpParams;
 
 import com.example.android.nfcsecurescanapp.R;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
+import android.nfc.Tag;
+import android.nfc.tech.Ndef;
+import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.Menu;
@@ -70,6 +75,7 @@ public class NFCSecureScanActivity extends Activity {
     static final private int DISABLE_ID = Menu.FIRST + 2;
     
     private boolean scanEnabled=true;
+    private boolean setToWrite=false;
     private String messageScanned ="";
     private String serverReply="";
     private TextView tv1;
@@ -95,57 +101,111 @@ public class NFCSecureScanActivity extends Activity {
         Intent intent = getIntent();
         NdefMessage msgs[] = null;
        
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) {
-        	Date now = new Date();
-        	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-            if (rawMsgs != null) {
-                msgs = new NdefMessage[rawMsgs.length];
-                for (int i = 0; i < rawMsgs.length; i++) {
-                    msgs[i] = (NdefMessage) rawMsgs[i];
-                }
-            }
-            
-            NdefRecord record = msgs[0].getRecords()[0];
-
-            byte[] payload = record.getPayload();
-            messageScanned = new String(payload);
-            
-            //strip "en" from beginning	
-            messageScanned = messageScanned.substring(3, messageScanned.length()); 
-            
-            tv1.setText("We scanned a tag at time :"+now.toString()+ 
-            			" data was: " + messageScanned +"\n");
-            
-            //Now that we have scanned the message, we want to send it
-            //to the webservice.
-            try {
-				submitMessageToWeb();
-			} catch (IOException e) {
-				e.printStackTrace();
-				tv1.setText("Failed to submit tag to webserver. It might be down.");
-			}
-            
-            //now that we have submitted the tag, we want to write the response
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) { 	
+        	if (!setToWrite) {
+        		readTagAndCallWebserver(intent,msgs);     
+        		setToWrite=true;
+        	} else {
+        		try {
+					writeServerReplyToTag();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (FormatException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        		setToWrite=false;
+        	}
+        	//now that we have submitted the tag, we want to write the response
             //that we received from the server to the tag that we scanned
             //we prompt the user to scan the tag again
             
             tv1.setText("We have received a response from the webserver, " +
             		"so in order to complete the protocol we need to scan " +
             		"the tag again so that the next person can use it. Note: " +
-            		"if you do not complete this step your scan will be invalid.");
-            
-            writeServerReplyToTag();
-            
-            
+            		"if you do not complete this step your scan will be invalid.\nWhen " +
+            		"you are ready, please go to the menu, and press the write button. " +
+            		"Bring your phone up to the tag so that the data can be written.");	            
         }
     }
 
-    private void writeServerReplyToTag() {
-		tv1.setText(tv1.getText() + "\nWe are ready to write, " +
+	private void writeServerReplyToTag() throws IOException, FormatException {
+		tv1.setText("\nWe are ready to write, " +
 				"please scan the tag now.");
-		
-		
+		Intent intent = getIntent();
+		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+		Ndef ndef = Ndef.get(tag);
+		NdefRecord record[] = new NdefRecord[1];
+		record[0] = createRecord();
+		NdefMessage message = new NdefMessage(record);
+		if (ndef != null) {
+		  ndef.connect();
+		  ndef.writeNdefMessage(message);
+		} else {
+		  NdefFormatable format = NdefFormatable.get(tag);
+		  if (format != null) {
+		    format.connect();
+		    format.format(message);
+		  }           
+		}
 	}
+	
+	private NdefRecord createRecord() throws UnsupportedEncodingException {
+	    String text       = "Hello, World!";
+	    String lang       = "en";
+	    byte[] textBytes  = text.getBytes();
+	    byte[] langBytes  = lang.getBytes("US-ASCII");
+	    int    langLength = langBytes.length;
+	    int    textLength = textBytes.length;
+	    byte[] payload    = new byte[1 + langLength + textLength];
+
+	    // set status byte (see NDEF spec for actual bits)
+	    payload[0] = (byte) langLength;
+
+	    // copy langbytes and textbytes into payload
+	    System.arraycopy(langBytes, 0, payload, 1,              langLength);
+	    System.arraycopy(textBytes, 0, payload, 1 + langLength, textLength);
+
+	    NdefRecord record = new NdefRecord(NdefRecord.TNF_WELL_KNOWN, 
+	                                       NdefRecord.RTD_TEXT, 
+	                                       new byte[0], 
+	                                       payload);
+
+	    return record;
+	}
+    
+    private void readTagAndCallWebserver(Intent intent,NdefMessage[] msgs) {
+    	Date now = new Date();
+    	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        if (rawMsgs != null) {
+            msgs = new NdefMessage[rawMsgs.length];
+            for (int i = 0; i < rawMsgs.length; i++) {
+                msgs[i] = (NdefMessage) rawMsgs[i];
+            }
+        }
+        
+        NdefRecord record = msgs[0].getRecords()[0];
+
+        byte[] payload = record.getPayload();
+        messageScanned = new String(payload);
+        
+        //strip "en" from beginning	
+        messageScanned = messageScanned.substring(3, messageScanned.length()); 
+        
+        tv1.setText("We scanned a tag at time :"+now.toString()+ 
+        			" data was: " + messageScanned +"\n");
+        
+        //Now that we have scanned the message, we want to send it
+        //to the web server.
+        try {
+			submitMessageToWeb();
+		} catch (IOException e) {
+			e.printStackTrace();
+			tv1.setText("Failed to submit tag to webserver. It might be down.");
+		}
+
+    }
 
 	private void submitMessageToWeb() throws IOException {
     	HttpClient httpclient = new DefaultHttpClient();
@@ -159,6 +219,7 @@ public class NFCSecureScanActivity extends Activity {
         HttpResponse response = httpclient.execute(httppost);
 
         tv1.setText(tv1.getText()+"response : "+response.toString());
+        serverReply = response.toString();
 	}
 
 	/**
@@ -172,7 +233,7 @@ public class NFCSecureScanActivity extends Activity {
         // unique integer IDs, labels from our string resources, and
         // given them shortcuts.
         menu.add(0, BACK_ID, 0, R.string.back).setShortcut('0', 'b');
-        menu.add(0, CLEAR_ID, 0, R.string.clear).setShortcut('1', 'c');
+        menu.add(0, CLEAR_ID, 0, "Write to Tag").setShortcut('1', 'c');
         menu.add(0, DISABLE_ID, 0, R.string.disable).setShortcut('2','s');
         return true;
     }
@@ -200,7 +261,15 @@ public class NFCSecureScanActivity extends Activity {
             finish();
             return true;
         case CLEAR_ID:
-            tv1.setText("");
+            try {
+				writeServerReplyToTag();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             return true;
         case DISABLE_ID:
         	disableScan();
