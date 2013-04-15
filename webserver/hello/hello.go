@@ -10,6 +10,7 @@ import (
 	"strings"
 	"crypto/rand"
 	"io"
+	"encoding/base64" 
 )
 
 type RequestRecord struct {
@@ -22,12 +23,17 @@ type RequestRecord struct {
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
-var tagstring = "lemurtwelve"
+var tagstring string
+
+type TagPass struct {
+    Password string
+}
 
 func init() {
 	http.HandleFunc("/",root)
 	http.HandleFunc("/log",logprinter)
 	http.HandleFunc("/submit",submitcode)
+
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
@@ -43,15 +49,51 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 
 func submitcode(w http.ResponseWriter, r *http.Request) {
 	recordRequest(w,r)
+
+	checkpass(r)
+
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
 	responsestring,accepted := generateResponse(passwordstring)
 	if (accepted) {
 		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 			responsestring)
+		writeNewPassword(r)
 	} else {
 		fmt.Fprintf(w,"REJECTED we want %s. State of the tag might be invalid.\n",tagstring)
 	}
+}
+
+func writeNewPassword(r *http.Request) {
+	c := appengine.NewContext(r)
+    k := datastore.NewKey(c, "TagPass", "pass", 0, nil)
+    e := TagPass{tagstring}
+
+    if _, err := datastore.Put(c, k, &e); err != nil {
+        fmt.Printf("Failed to put password in datastore\n")
+        return
+    }
+}
+
+func checkpass(r *http.Request) {
+	c := appengine.NewContext(r)
+    k := datastore.NewKey(c, "TagPass", "pass", 0, nil)
+    e := new(TagPass)
+    if err := datastore.Get(c, k, e); err != nil {
+        fmt.Printf("No password in datastore. Get failed")
+        //return
+    }
+
+    if (len(e.Password) == 0) {
+		fmt.Printf("No password in datastore. Putting in default\n")
+		e.Password = "lemurtwelve"
+	}
+	tagstring = e.Password
+
+    if _, err := datastore.Put(c, k, &e); err != nil {
+        fmt.Printf("Failed to put password in datastore\n")
+        return
+    }
 }
 
 func generateResponse(pw string) (string,bool) {
@@ -62,7 +104,10 @@ func generateResponse(pw string) (string,bool) {
 			fmt.Println("error:", err)
 			return "",false
 		}		
-		newpass := string(b)
+		en := base64.StdEncoding
+        d := make([]byte, en.EncodedLen(len(b))) 
+        en.Encode(d, b) 
+        newpass := string(d)
 		//we expect the newpass to be written to the tag
 		//so it is the next password that we expect
 		tagstring=newpass
