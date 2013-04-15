@@ -32,6 +32,7 @@ import java.util.Locale;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -121,12 +122,13 @@ public class NFCSecureScanActivity extends Activity {
             //that we received from the server to the tag that we scanned
             //we prompt the user to scan the tag again
             
-            tv1.setText("We have received a response from the webserver, " +
+            /*tv1.setText("We have received a response from the webserver, " +
             		"so in order to complete the protocol we need to scan " +
             		"the tag again so that the next person can use it. Note: " +
             		"if you do not complete this step your scan will be invalid.\nWhen " +
             		"you are ready, please go to the menu, and press the write button. " +
             		"Bring your phone up to the tag so that the data can be written.");	            
+        	*/
         }
     }
 
@@ -203,11 +205,14 @@ public class NFCSecureScanActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 			tv1.setText("Failed to submit tag to webserver. It might be down.");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
     }
 
-	private void submitMessageToWeb() throws IOException {
+	private void submitMessageToWeb() throws Exception {
     	HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost("http://nfcsecurity.appspot.com/submit");
 
@@ -217,9 +222,33 @@ public class NFCSecureScanActivity extends Activity {
 
         // Execute HTTP Post Request
         HttpResponse response = httpclient.execute(httppost);
+        
+        
+        InputStream ips  = response.getEntity().getContent();
+        BufferedReader buf = new BufferedReader(new InputStreamReader(ips,"UTF-8"));
+        if(response.getStatusLine().getStatusCode()!=HttpStatus.SC_OK)
+        {
+            throw new Exception(response.getStatusLine().getReasonPhrase());
+        }
+        StringBuilder sb = new StringBuilder();
+        String s;
+        while(true )
+        {
+            s = buf.readLine();
+            if(s==null || s.length()==0)
+                break;
+            sb.append(s);
 
-        tv1.setText(tv1.getText()+"response : "+response.toString());
-        serverReply = response.toString();
+        }
+        buf.close();
+        ips.close();
+        
+        
+        String serverResponse = sb.toString();
+        
+       
+        tv1.setText(tv1.getText()+"\n\nWhat server said : \n\n\n"+serverResponse);
+        serverReply = serverResponse;
 	}
 
 	/**
