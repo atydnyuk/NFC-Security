@@ -48,7 +48,9 @@ import com.example.android.nfcsecurescanapp.R;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -63,6 +65,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * This class provides a basic demonstration of how to write an Android
@@ -80,6 +83,7 @@ public class NFCSecureScanActivity extends Activity {
     private String messageScanned ="";
     private String serverReply="";
     private TextView tv1;
+    private Tag mytag;
     
     public NFCSecureScanActivity() {
     }
@@ -91,6 +95,13 @@ public class NFCSecureScanActivity extends Activity {
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.skeleton_activity);
         tv1 = (TextView) findViewById(R.id.textView1);
+        
+        
+        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+        IntentFilter tagDetected = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
+        tagDetected.addCategory(Intent.CATEGORY_DEFAULT);
+        IntentFilter[] writeTagFilters = new IntentFilter[] { tagDetected };
     }
 
     /**
@@ -103,58 +114,30 @@ public class NFCSecureScanActivity extends Activity {
         NdefMessage msgs[] = null;
        
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) { 	
-        	if (!setToWrite) {
-        		readTagAndCallWebserver(intent,msgs);     
-        		setToWrite=true;
-        	} else {
-        		try {
-					writeServerReplyToTag();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (FormatException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-        		setToWrite=false;
-        	}
-        	//now that we have submitted the tag, we want to write the response
-            //that we received from the server to the tag that we scanned
-            //we prompt the user to scan the tag again
-            
-            /*tv1.setText("We have received a response from the webserver, " +
-            		"so in order to complete the protocol we need to scan " +
-            		"the tag again so that the next person can use it. Note: " +
-            		"if you do not complete this step your scan will be invalid.\nWhen " +
-            		"you are ready, please go to the menu, and press the write button. " +
-            		"Bring your phone up to the tag so that the data can be written.");	            
-        	*/
+        	readTagAndCallWebserver(intent,msgs);     
         }
     }
 
 	private void writeServerReplyToTag() throws IOException, FormatException {
-		tv1.setText("\nWe are ready to write, " +
-				"please scan the tag now.");
-		Intent intent = getIntent();
-		Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-		Ndef ndef = Ndef.get(tag);
-		NdefRecord record[] = new NdefRecord[1];
-		record[0] = createRecord();
-		NdefMessage message = new NdefMessage(record);
-		if (ndef != null) {
-		  ndef.connect();
-		  ndef.writeNdefMessage(message);
-		} else {
-		  NdefFormatable format = NdefFormatable.get(tag);
-		  if (format != null) {
-		    format.connect();
-		    format.format(message);
-		  }           
-		}
+		int passwordIndex = serverReply.indexOf("tag: ");
+		String password = serverReply.substring(passwordIndex+5);
+		tv1.setText(tv1.getText()+ "writing to tag: "+password);
+		NdefRecord[] records = { createRecord(password) };
+
+		NdefMessage  message = new NdefMessage(records);
+		// Get an instance of Ndef for the tag.
+		Ndef ndef = Ndef.get(mytag);
+		// Enable I/O
+		ndef.connect();
+		// Write the message
+		ndef.writeNdefMessage(message);
+		tv1.setText(tv1.getText() + "\n\nWrote server response to the tag. Success!");
+		// Close the connection
+		ndef.close();
+
 	}
 	
-	private NdefRecord createRecord() throws UnsupportedEncodingException {
-	    String text       = "Hello, World!";
+	private NdefRecord createRecord(String text) throws UnsupportedEncodingException {
 	    String lang       = "en";
 	    byte[] textBytes  = text.getBytes();
 	    byte[] langBytes  = lang.getBytes("US-ASCII");
@@ -179,6 +162,7 @@ public class NFCSecureScanActivity extends Activity {
     
     private void readTagAndCallWebserver(Intent intent,NdefMessage[] msgs) {
     	Date now = new Date();
+    	mytag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
     	Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
         if (rawMsgs != null) {
             msgs = new NdefMessage[rawMsgs.length];
@@ -222,12 +206,10 @@ public class NFCSecureScanActivity extends Activity {
 
         // Execute HTTP Post Request
         HttpResponse response = httpclient.execute(httppost);
-        
-        
+                
         InputStream ips  = response.getEntity().getContent();
         BufferedReader buf = new BufferedReader(new InputStreamReader(ips,"UTF-8"));
-        if(response.getStatusLine().getStatusCode()!=HttpStatus.SC_OK)
-        {
+        if(response.getStatusLine().getStatusCode()!=HttpStatus.SC_OK) {
             throw new Exception(response.getStatusLine().getReasonPhrase());
         }
         StringBuilder sb = new StringBuilder();
@@ -245,10 +227,39 @@ public class NFCSecureScanActivity extends Activity {
         
         
         String serverResponse = sb.toString();
-        
-       
-        tv1.setText(tv1.getText()+"\n\nWhat server said : \n\n\n"+serverResponse);
         serverReply = serverResponse;
+       
+        tv1.setText(tv1.getText()+"\n\nWhat server said : \n"+serverResponse);
+        if (serverResponse.matches(".*ACCEPTED.*")) {
+        	//this means that we sent the correct code
+        	tv1.setText("Server has accepted the password.");
+        	
+        	//tv1.setText(tv1.getText()+ 
+        	//"\n\nIn order to complete the protocol we need to scan " +
+    		//"the tag again so that the next person can use it. Note: " +
+    		//"if you do not complete this step your scan will be invalid.\n" +
+    		//"Bring your phone up to the tag so that the data can be written.");	            
+	
+        	try {
+				writeServerReplyToTag();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	
+        } else if (serverResponse.matches(".*REJECTED.*")) {
+        	//this means that we sent the wrong code    	
+        	tv1.setText(tv1.getText()+"Server has rejected the password. " +
+        			"The tag might be malfunctioning.");
+        	tv1.setText(tv1.getText() + "DEBUG RESPONSE: "+serverResponse);
+        } else {
+        	//there's something strange...in the neighborhood
+        	tv1.setText("Unexpected error occured when contacting server.");
+        }
+        
 	}
 
 	/**
@@ -290,15 +301,6 @@ public class NFCSecureScanActivity extends Activity {
             finish();
             return true;
         case CLEAR_ID:
-            try {
-				writeServerReplyToTag();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (FormatException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
             return true;
         case DISABLE_ID:
         	disableScan();
