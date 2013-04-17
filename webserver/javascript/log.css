@@ -81,10 +81,19 @@ body {
     font-weight: bold;
 }
 
-.match .contents {
+.match .accept .contents {
     white-space: pre;
     font-family: monospace;
-    background: #eee;
+    background: #66FF66;
+    border: 1px solid black;
+    margin-left: 1em;
+    padding: 3px;
+}
+
+.match .reject .contents {
+    white-space: pre;
+    font-family: monospace;
+    background: #FF6666;
     border: 1px solid black;
     margin-left: 1em;
     padding: 3px;

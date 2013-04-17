@@ -20,6 +20,7 @@ type RequestRecord struct {
 	RawQuery string
 	Time time.Time
 	Password string
+	Accepted string
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
@@ -37,7 +38,6 @@ func init() {
 }
 
 func root(w http.ResponseWriter, r *http.Request) {
-	recordRequest(w,r)
 	if err := logTemplate.Execute(w,nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -48,9 +48,6 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 }
 
 func submitcode(w http.ResponseWriter, r *http.Request) {
-	//put the request recieved in the log
-	recordRequest(w,r)
-
 	//get the password we expect from the datastore
 	checkpass(r)
 
@@ -58,6 +55,8 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
 	responsestring,accepted := generateResponse(passwordstring)
+	//put the request recieved in the log
+	recordRequest(w,r,accepted)
 	if (accepted) {
 		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 			responsestring)
@@ -144,11 +143,18 @@ func trimQuotes(x string) string {
  * Records the important parts of a submit request and 
  * puts it into the datastore so that it can be seen in the log
  */
-func recordRequest(w http.ResponseWriter, r *http.Request) {
+func recordRequest(w http.ResponseWriter, r *http.Request, a bool) {
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	c := appengine.NewContext(r)
+
+	var acceptedString string
+	if (a) { 
+		acceptedString = "true"
+	} else {
+		acceptedString = "false"
+	}
 	
 	req := RequestRecord{
 	RemoteAddr:r.RemoteAddr,
@@ -157,6 +163,7 @@ func recordRequest(w http.ResponseWriter, r *http.Request) {
 	RawQuery:rawquery,
 	Time:time.Now(),
 	Password:passwordstring,
+	Accepted:acceptedString,
 	}
 		
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
@@ -192,6 +199,11 @@ func printLogToHTML(w http.ResponseWriter, r *http.Request) {
 		cQuery:=trimQuotes(records[key].RawQuery)
 		if (cPath == "/submit") {
 			fmt.Fprintf(w,"<div class=\"match\">")
+			if (records[key].Accepted == "true" ) {
+				fmt.Fprintf(w,"<div class=\"accept\">")
+			} else {
+				fmt.Fprintf(w,"<div class=\"reject\">")
+			}
 			fmt.Fprintf(w,"<div><span class=\"label\">")
 			fmt.Fprintf(w,"%d. Remote Address: %s",
 				counter,records[key].RemoteAddr)
@@ -211,7 +223,7 @@ func printLogToHTML(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w,"Password is : %s\n",
 					records[key].Password)
 			}
-			fmt.Fprintf(w,"</div></div>")
+			fmt.Fprintf(w,"</div></div></div>")
 			counter++
 		}
 	}
