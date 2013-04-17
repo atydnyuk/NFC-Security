@@ -79,7 +79,6 @@ public class NFCSecureScanActivity extends Activity {
     static final private int DISABLE_ID = Menu.FIRST + 2;
     
     private boolean scanEnabled=true;
-    private boolean setToWrite=false;
     private String messageScanned ="";
     private String serverReply="";
     private TextView tv1;
@@ -95,13 +94,6 @@ public class NFCSecureScanActivity extends Activity {
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.skeleton_activity);
         tv1 = (TextView) findViewById(R.id.textView1);
-        
-        
-        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(this);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
-        IntentFilter tagDetected = new IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED);
-        tagDetected.addCategory(Intent.CATEGORY_DEFAULT);
-        IntentFilter[] writeTagFilters = new IntentFilter[] { tagDetected };
     }
 
     /**
@@ -134,6 +126,7 @@ public class NFCSecureScanActivity extends Activity {
 		tv1.setText(tv1.getText() + "\n\nWrote server response to the tag. Success!");
 		// Close the connection
 		ndef.close();
+		
 
 	}
 	
@@ -303,24 +296,10 @@ public class NFCSecureScanActivity extends Activity {
         case CLEAR_ID:
             return true;
         case DISABLE_ID:
-        	disableScan();
         	return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-    
-    OnClickListener mDisableListener = new OnClickListener() {
-		public void onClick(View v) {
-			disableScan();
-		}
-    };
-    
-    public void disableScan() {
-    	tv1.setText("Tag scan is disabled");
-		scanEnabled=false;
-    }
-    
-    
 }
 
