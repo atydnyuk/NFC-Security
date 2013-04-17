@@ -48,10 +48,13 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 }
 
 func submitcode(w http.ResponseWriter, r *http.Request) {
+	//put the request recieved in the log
 	recordRequest(w,r)
 
+	//get the password we expect from the datastore
 	checkpass(r)
 
+	//check if the submitted password is correct
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
 	responsestring,accepted := generateResponse(passwordstring)
@@ -60,10 +63,13 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 			responsestring)
 		writeNewPassword(r)
 	} else {
-		fmt.Fprintf(w,"REJECTED we want %s. State of the tag might be invalid.\n",tagstring)
+		fmt.Fprintf(w,"REJECTED we want %s.\n",tagstring)
 	}
 }
 
+/*
+ * Writes the password to the datastore
+ */
 func writeNewPassword(r *http.Request) {
 	c := appengine.NewContext(r)
     k := datastore.NewKey(c, "TagPass", "pass", 0, nil)
@@ -75,13 +81,17 @@ func writeNewPassword(r *http.Request) {
     }
 }
 
+/*
+ * Checks if we have a password in the datastore. If we don't
+ * then we set a default (NOT SECURE. Demo purposes), otherwise
+ * we fetch it.
+ */
 func checkpass(r *http.Request) {
 	c := appengine.NewContext(r)
     k := datastore.NewKey(c, "TagPass", "pass", 0, nil)
     e := new(TagPass)
     if err := datastore.Get(c, k, e); err != nil {
         fmt.Printf("No password in datastore. Get failed")
-        //return
     }
 
     if (len(e.Password) == 0) {
@@ -96,6 +106,11 @@ func checkpass(r *http.Request) {
     }
 }
 
+/*
+ * Generates cryptographically random string
+ * The string is converted to base64 so it can be 
+ * printed, and then it becomes the new password
+*/
 func generateResponse(pw string) (string,bool) {
 	if (trimQuotes(pw)==tagstring) {
 		b := make([]byte, 15)
@@ -108,18 +123,26 @@ func generateResponse(pw string) (string,bool) {
         d := make([]byte, en.EncodedLen(len(b))) 
         en.Encode(d, b) 
         newpass := string(d)
+
 		//we expect the newpass to be written to the tag
-		//so it is the next password that we expect
+		//so we set it as the next password that we expect
 		tagstring=newpass
 		return newpass,true
 	} 
 	return "",false
 }
 
+/*
+ * Function trims the quotes from a string
+ */
 func trimQuotes(x string) string {
 	return strings.Join(strings.Split(x,"")[1:len(x)-1],"")
 }
 
+/*
+ * Records the important parts of a submit request and 
+ * puts it into the datastore so that it can be seen in the log
+ */
 func recordRequest(w http.ResponseWriter, r *http.Request) {
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
@@ -142,6 +165,11 @@ func recordRequest(w http.ResponseWriter, r *http.Request) {
 	}	
 }
 
+
+/*
+ * Goes through the last 100 requests in the datastore and 
+ * prints them to the screen in log format.
+ */
 func printLogToHTML(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	q := datastore.NewQuery("Record").Order("-Time").Limit(100)
