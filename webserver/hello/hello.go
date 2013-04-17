@@ -97,13 +97,14 @@ func checkpass(r *http.Request) {
     if (len(e.Password) == 0) {
 		fmt.Printf("No password in datastore. Putting in default\n")
 		e.Password = "lemurtwelve"
+		if _, err := datastore.Put(c, k, &e); err != nil {
+			fmt.Printf("Failed to put password in datastore\n")
+			return
+		}
 	}
+
 	tagstring = e.Password
 
-    if _, err := datastore.Put(c, k, &e); err != nil {
-        fmt.Printf("Failed to put password in datastore\n")
-        return
-    }
 }
 
 /*
