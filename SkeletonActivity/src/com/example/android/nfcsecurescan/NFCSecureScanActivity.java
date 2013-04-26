@@ -84,6 +84,9 @@ public class NFCSecureScanActivity extends Activity {
     private TextView tv1;
     private Tag mytag;
     
+    /**
+     * Blank constructor
+     */
     public NFCSecureScanActivity() {
     }
 
@@ -115,8 +118,8 @@ public class NFCSecureScanActivity extends Activity {
 		String password = serverReply.substring(passwordIndex+5);
 		tv1.setText(tv1.getText()+ "writing to tag: "+password);
 		NdefRecord[] records = { createRecord(password) };
-
 		NdefMessage  message = new NdefMessage(records);
+		
 		// Get an instance of Ndef for the tag.
 		Ndef ndef = Ndef.get(mytag);
 		// Enable I/O
@@ -126,10 +129,18 @@ public class NFCSecureScanActivity extends Activity {
 		tv1.setText(tv1.getText() + "\n\nWrote server response to the tag. Success!");
 		// Close the connection
 		ndef.close();
-		
-
 	}
 	
+	/**
+	 * I shamelessly copied this from a stack overflow answer I think. 
+	 * This whole tag reading/writing stuff is pretty complicated to figure out
+	 * and I don't really have the time to delve into it. Just need the bare minimum
+	 * to get a demo working. Also this is why I never bothered to change stuff
+	 * from a skeleton activity to something more meaningful. 
+	 * @param text The text that you want to write
+	 * @return the NdefRecord that you will write to the tag
+	 * @throws UnsupportedEncodingException
+	 */
 	private NdefRecord createRecord(String text) throws UnsupportedEncodingException {
 	    String lang       = "en";
 	    byte[] textBytes  = text.getBytes();
@@ -149,10 +160,15 @@ public class NFCSecureScanActivity extends Activity {
 	                                       NdefRecord.RTD_TEXT, 
 	                                       new byte[0], 
 	                                       payload);
-
 	    return record;
 	}
     
+	/**
+	 * Reads the tag, and sends the password that it read from the tag to 
+	 * the method that crafts the web server request.
+	 * @param intent
+	 * @param msgs
+	 */
     private void readTagAndCallWebserver(Intent intent,NdefMessage[] msgs) {
     	Date now = new Date();
     	mytag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
@@ -181,14 +197,21 @@ public class NFCSecureScanActivity extends Activity {
 			submitMessageToWeb();
 		} catch (IOException e) {
 			e.printStackTrace();
-			tv1.setText("Failed to submit tag to webserver. It might be down.");
+			tv1.setText("Failed to submit tag. Check your connection");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
     }
-
+    
+    /**
+     * Crafts the request and sends it to the web server. Password from the 
+     * tag is passed with the password variable in the query.
+     * 
+     * We then read the server's response and act accordingly.
+     * @throws Exception
+     */
 	private void submitMessageToWeb() throws Exception {
     	HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost("http://nfcsecurity.appspot.com/submit");
@@ -226,13 +249,6 @@ public class NFCSecureScanActivity extends Activity {
         if (serverResponse.matches(".*ACCEPTED.*")) {
         	//this means that we sent the correct code
         	tv1.setText("Server has accepted the password.");
-        	
-        	//tv1.setText(tv1.getText()+ 
-        	//"\n\nIn order to complete the protocol we need to scan " +
-    		//"the tag again so that the next person can use it. Note: " +
-    		//"if you do not complete this step your scan will be invalid.\n" +
-    		//"Bring your phone up to the tag so that the data can be written.");	            
-	
         	try {
 				writeServerReplyToTag();
 			} catch (IOException e) {
@@ -248,11 +264,20 @@ public class NFCSecureScanActivity extends Activity {
         	tv1.setText(tv1.getText()+"Server has rejected the password. " +
         			"The tag might be malfunctioning.");
         	tv1.setText(tv1.getText() + "DEBUG RESPONSE: "+serverResponse);
+        	//we still want to write the message that we get to the server!
+        	try {
+				writeServerReplyToTag();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         } else {
         	//there's something strange...in the neighborhood
         	tv1.setText("Unexpected error occured when contacting server.");
         }
-        
 	}
 
 	/**
@@ -261,7 +286,6 @@ public class NFCSecureScanActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-
         // We are going to create two menus. Note that we assign them
         // unique integer IDs, labels from our string resources, and
         // given them shortcuts.
@@ -298,7 +322,6 @@ public class NFCSecureScanActivity extends Activity {
         case DISABLE_ID:
         	return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 }
