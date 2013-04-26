@@ -24,7 +24,9 @@ type RequestRecord struct {
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
+
 var tagstring string
+var lastValidPassword string
 
 type TagPass struct {
     Password string
@@ -50,7 +52,7 @@ func logprinter(w http.ResponseWriter, r *http.Request) {
 func submitcode(w http.ResponseWriter, r *http.Request) {
 	//get the password we expect from the datastore
 	checkpass(r)
-
+	checkLastPass(r)
 	//check if the submitted password is correct
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
 	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
@@ -58,11 +60,23 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 	//put the request recieved in the log
 	recordRequest(w,r,accepted)
 	if (accepted) {
+		tagstring=responsestring;
 		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 			responsestring)
+		lastValidPassword=responsestring;
 		writeNewPassword(r)
+		writeLastValidPassword(r)
 	} else {
+		if (trimQuotes(passwordstring) == lastValidPassword) {
+			//an old password that we expected to be on the tag
+			//has been submitted
+			fmt.Fprintf(w,"old tag password. rollback time\n")
+		}
 		fmt.Fprintf(w,"REJECTED we want %s.\n",tagstring)
+		fmt.Fprintf(w,"Please write %s to the tag.\n",responsestring)
+		fmt.Fprintf(w,"the last valid password is %s\n",lastValidPassword)
+		tagstring=responsestring;
+		writeNewPassword(r)
 	}
 }
 
@@ -73,6 +87,20 @@ func writeNewPassword(r *http.Request) {
 	c := appengine.NewContext(r)
     k := datastore.NewKey(c, "TagPass", "pass", 0, nil)
     e := TagPass{tagstring}
+
+    if _, err := datastore.Put(c, k, &e); err != nil {
+        fmt.Printf("Failed to put password in datastore\n")
+        return
+    }
+}
+
+/*
+ * Writes the last password given to valid request to the datastore
+ */
+func writeLastValidPassword(r *http.Request) {
+	c := appengine.NewContext(r)
+    k := datastore.NewKey(c, "TagPass", "lastvalidpass", 0, nil)
+    e := TagPass{lastValidPassword}
 
     if _, err := datastore.Put(c, k, &e); err != nil {
         fmt.Printf("Failed to put password in datastore\n")
@@ -101,9 +129,31 @@ func checkpass(r *http.Request) {
 			return
 		}
 	}
-
 	tagstring = e.Password
+}
 
+/*
+ * Checks if we have the last valid password in the datastore. 
+ * If we don't then we set it to an empty string, otherwise
+ * we fetch it.
+ */
+func checkLastPass(r *http.Request) {
+	c := appengine.NewContext(r)
+    k := datastore.NewKey(c, "TagPass", "lastvalidpass", 0, nil)
+    e := new(TagPass)
+    if err := datastore.Get(c, k, e); err != nil {
+        fmt.Printf("No password in datastore. Get failed")
+    }
+
+    if (len(e.Password) == 0) {
+		fmt.Printf("No password in datastore. Putting in default\n")
+		e.Password = ""
+		if _, err := datastore.Put(c, k, &e); err != nil {
+			fmt.Printf("Failed to put password in datastore\n")
+			return
+		}
+	}
+	lastValidPassword = e.Password
 }
 
 /*
@@ -112,24 +162,26 @@ func checkpass(r *http.Request) {
  * printed, and then it becomes the new password
 */
 func generateResponse(pw string) (string,bool) {
-	if (trimQuotes(pw)==tagstring) {
-		b := make([]byte, 15)
-		n, err := io.ReadFull(rand.Reader, b)
-		if n != len(b) || err != nil {
-			fmt.Println("error:", err)
-			return "",false
-		}		
-		en := base64.StdEncoding
-        d := make([]byte, en.EncodedLen(len(b))) 
-        en.Encode(d, b) 
-        newpass := string(d)
+	//we make a new password regardless of whether we get
+	//the right password or a wrong one
+	b := make([]byte, 15)
+	n, err := io.ReadFull(rand.Reader, b)
+	if n != len(b) || err != nil {
+		fmt.Println("error:", err)
+		return "",false
+	}		
+	en := base64.StdEncoding
+    d := make([]byte, en.EncodedLen(len(b))) 
+    en.Encode(d, b) 
+    newpass := string(d)
+	
+	//we expect the newpass to be written to the tag
+	//so we set it as the next password that we expect
 
-		//we expect the newpass to be written to the tag
-		//so we set it as the next password that we expect
-		tagstring=newpass
+	if (trimQuotes(pw)==tagstring) {
 		return newpass,true
 	} 
-	return "",false
+	return newpass,false
 }
 
 /*
