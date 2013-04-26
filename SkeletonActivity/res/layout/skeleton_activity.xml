@@ -42,12 +42,6 @@
          give it a custom background; see colors.xml for the definition
          of drawable/semi_black-->
 
-    <Button
-        android:id="@+id/viewscanned"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="View Scanned" />
-
     <LinearLayout
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_gravity="center_vertical" android:gravity="center_horizontal"
