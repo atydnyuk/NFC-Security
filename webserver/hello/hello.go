@@ -68,13 +68,20 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 		writeLastValidPassword(r)
 	} else {
 		if (trimQuotes(passwordstring) == lastValidPassword) {
-			//an old password that we expected to be on the tag
-			//has been submitted
-			fmt.Fprintf(w,"old tag password. rollback time\n")
+			//we will accept the last old password as well
+			//in case something fishy happened
+			fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
+				responsestring)
+			tagstring=responsestring;
+			lastValidPassword=responsestring;
+			writeNewPassword(r)
+			writeLastValidPassword(r)
+			return
 		}
 		fmt.Fprintf(w,"REJECTED we want %s.\n",tagstring)
 		fmt.Fprintf(w,"Please write %s to the tag.\n",responsestring)
-		fmt.Fprintf(w,"the last valid password is %s\n",lastValidPassword)
+		fmt.Fprintf(w,"the last valid password is %s\n",
+			lastValidPassword)
 		tagstring=responsestring;
 		writeNewPassword(r)
 	}
