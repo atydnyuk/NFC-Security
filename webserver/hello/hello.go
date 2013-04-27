@@ -81,8 +81,7 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		recordRequest(w,r,false)
-		fmt.Fprintf(w,"REJECTED we want %s.\n",tagstring)
-		fmt.Fprintf(w,"last valid password is %s\n",lastValidPassword)
+		fmt.Fprintf(w,"REJECTED.\n")
 		fmt.Fprintf(w,"write this to the tag: %s\n",responsestring)
 		tagstring=responsestring;
 		writeNewPassword(r)
