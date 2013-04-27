@@ -58,8 +58,9 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
 	responsestring,accepted := generateResponse(passwordstring)
 	//put the request recieved in the log
-	recordRequest(w,r,accepted)
+	
 	if (accepted) {
+		recordRequest(w,r,true)
 		tagstring=responsestring;
 		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 			responsestring)
@@ -70,6 +71,7 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 		if (trimQuotes(passwordstring) == lastValidPassword) {
 			//we will accept the last old password as well
 			//in case something fishy happened
+			recordRequest(w,r,true)
 			fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 				responsestring)
 			tagstring=responsestring;
@@ -78,10 +80,10 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 			writeLastValidPassword(r)
 			return
 		}
+		recordRequest(w,r,false)
 		fmt.Fprintf(w,"REJECTED we want %s.\n",tagstring)
-		fmt.Fprintf(w,"Please write %s to the tag.\n",responsestring)
-		fmt.Fprintf(w,"the last valid password is %s\n",
-			lastValidPassword)
+		fmt.Fprintf(w,"last valid password is %s\n",lastValidPassword)
+		fmt.Fprintf(w,"write this to the tag: %s\n",responsestring)
 		tagstring=responsestring;
 		writeNewPassword(r)
 	}
