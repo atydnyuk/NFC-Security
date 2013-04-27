@@ -21,51 +21,35 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
 
 import com.example.android.nfcsecurescanapp.R;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.nfc.FormatException;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.Ndef;
-import android.nfc.tech.NdefFormatable;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  * This class provides a basic demonstration of how to write an Android
@@ -75,8 +59,6 @@ import android.widget.Toast;
 public class NFCSecureScanActivity extends Activity {
     
     static final private int BACK_ID = Menu.FIRST;
-    static final private int CLEAR_ID = Menu.FIRST + 1;
-    static final private int DISABLE_ID = Menu.FIRST + 2;
     
     private String messageScanned ="";
     private String serverReply="";
@@ -96,6 +78,7 @@ public class NFCSecureScanActivity extends Activity {
         // Inflate our UI from its XML layout description.
         setContentView(R.layout.skeleton_activity);
         tv1 = (TextView) findViewById(R.id.textView1);
+        tv1.setMovementMethod(new ScrollingMovementMethod());
     }
 
     /**
@@ -198,8 +181,8 @@ public class NFCSecureScanActivity extends Activity {
 			e.printStackTrace();
 			tv1.setText("Failed to submit tag. Check your connection");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			tv1.setText("Failed to submit tag. Check your connection");
 		}
 
     }
@@ -251,26 +234,28 @@ public class NFCSecureScanActivity extends Activity {
         	try {
 				writeServerReplyToTag();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				tv1.setText("Failed to write tag.");
 			} catch (FormatException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				tv1.setText("Failed to write tag.");
 			}
         	
         } else if (serverResponse.matches(".*REJECTED.*")) {
         	//this means that we sent the wrong code    	
         	tv1.setText(tv1.getText()+"Server has rejected the password. " +
         			"The tag might be malfunctioning.");
+        	
+        	//even though we read the wrong code from the tag
         	//we still want to write the message that we get to the server!
         	try {
 				writeServerReplyToTag();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				tv1.setText("Failed to write tag.");
 			} catch (FormatException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+				tv1.setText("Failed to write tag.");
 			}
         } else {
         	//there's something strange...in the neighborhood
@@ -288,8 +273,6 @@ public class NFCSecureScanActivity extends Activity {
         // unique integer IDs, labels from our string resources, and
         // given them shortcuts.
         menu.add(0, BACK_ID, 0, R.string.back).setShortcut('0', 'b');
-        menu.add(0, CLEAR_ID, 0, "Write to Tag").setShortcut('1', 'c');
-        menu.add(0, DISABLE_ID, 0, R.string.disable).setShortcut('2','s');
         return true;
     }
 
@@ -299,10 +282,6 @@ public class NFCSecureScanActivity extends Activity {
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-
-        // Before showing the menu, we need to decide whether the clear
-        // item is enabled depending on whether there is text to clear.
-        menu.findItem(CLEAR_ID).setVisible(tv1.getText().length() > 0);
         return true;
     }
 
@@ -315,10 +294,6 @@ public class NFCSecureScanActivity extends Activity {
         case BACK_ID:
             finish();
             return true;
-        case CLEAR_ID:
-            return true;
-        case DISABLE_ID:
-        	return true;
         }
         return super.onOptionsItemSelected(item);
     }
