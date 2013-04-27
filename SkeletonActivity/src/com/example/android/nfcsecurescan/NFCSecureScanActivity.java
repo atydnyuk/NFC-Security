@@ -78,7 +78,6 @@ public class NFCSecureScanActivity extends Activity {
     static final private int CLEAR_ID = Menu.FIRST + 1;
     static final private int DISABLE_ID = Menu.FIRST + 2;
     
-    private boolean scanEnabled=true;
     private String messageScanned ="";
     private String serverReply="";
     private TextView tv1;
@@ -108,7 +107,7 @@ public class NFCSecureScanActivity extends Activity {
         Intent intent = getIntent();
         NdefMessage msgs[] = null;
        
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction()) && scanEnabled) { 	
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) { 	
         	readTagAndCallWebserver(intent,msgs);     
         }
     }
@@ -116,7 +115,7 @@ public class NFCSecureScanActivity extends Activity {
 	private void writeServerReplyToTag() throws IOException, FormatException {
 		int passwordIndex = serverReply.indexOf("tag: ");
 		String password = serverReply.substring(passwordIndex+5);
-		tv1.setText(tv1.getText()+ "writing to tag: "+password);
+		
 		NdefRecord[] records = { createRecord(password) };
 		NdefMessage  message = new NdefMessage(records);
 		
@@ -126,9 +125,10 @@ public class NFCSecureScanActivity extends Activity {
 		ndef.connect();
 		// Write the message
 		ndef.writeNdefMessage(message);
-		tv1.setText(tv1.getText() + "\n\nWrote server response to the tag. Success!");
+		tv1.setText(tv1.getText() + "\nWrote tag:" + password);
 		// Close the connection
 		ndef.close();
+		finish();
 	}
 	
 	/**
@@ -188,8 +188,7 @@ public class NFCSecureScanActivity extends Activity {
         //strip "en" from beginning	
         messageScanned = messageScanned.substring(3, messageScanned.length()); 
         
-        tv1.setText("We scanned a tag at time :"+now.toString()+ 
-        			" data was: " + messageScanned +"\n");
+        tv1.setText(now.toString()+": " + messageScanned +"\n");
         
         //Now that we have scanned the message, we want to send it
         //to the web server.
@@ -263,7 +262,6 @@ public class NFCSecureScanActivity extends Activity {
         	//this means that we sent the wrong code    	
         	tv1.setText(tv1.getText()+"Server has rejected the password. " +
         			"The tag might be malfunctioning.");
-        	tv1.setText(tv1.getText() + "DEBUG RESPONSE: "+serverResponse);
         	//we still want to write the message that we get to the server!
         	try {
 				writeServerReplyToTag();
