@@ -21,6 +21,7 @@ type RequestRecord struct {
 	Time time.Time
 	Password string
 	Accepted string
+	ResponsePassword string
 }
 
 var logTemplate = template.Must(template.New("log.html").ParseFiles("templates/log.html"))
@@ -55,23 +56,26 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 	checkLastPass(r)
 	//check if the submitted password is correct
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
-	fmt.Fprintf(w,"You submitted the password: %s\n",passwordstring)
 	responsestring,accepted := generateResponse(passwordstring)
 	//put the request recieved in the log
 	
 	if (accepted) {
-		recordRequest(w,r,true)
+		recordRequest(w,r,true,responsestring)
 		tagstring=responsestring;
 		fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 			responsestring)
 		lastValidPassword=responsestring;
+		//If we are guaranteed no MITM attacks via a on-phone TPM or 
+		//some magical timing mechanism on the tag, we can do this:
+		got_valid_forgive_fixer(w,r,passwordstring)
+		
 		writeNewPassword(r)
 		writeLastValidPassword(r)
 	} else {
 		if (trimQuotes(passwordstring) == lastValidPassword) {
 			//we will accept the last old password as well
 			//in case something fishy happened
-			recordRequest(w,r,true)
+			recordRequest(w,r,true,responsestring)
 			fmt.Fprintf(w,"ACCEPTED. Please write this to the tag: %s\n",
 				responsestring)
 			tagstring=responsestring;
@@ -80,12 +84,67 @@ func submitcode(w http.ResponseWriter, r *http.Request) {
 			writeLastValidPassword(r)
 			return
 		}
-		recordRequest(w,r,false)
+		recordRequest(w,r,false,responsestring)
 		fmt.Fprintf(w,"REJECTED.\n")
 		fmt.Fprintf(w,"write this to the tag: %s\n",responsestring)
 		tagstring=responsestring;
 		writeNewPassword(r)
 	}
+}
+
+/**
+ * If we can guarantee that the codes that the webserver gives
+ * can't be accessed in plaintext, we can use this method to 
+ * guarantee that the person that fixes the tag that a malicious
+ * user breaks gets their request accepted.
+ *
+ * This guarantees that NO good users get their requests rejected, 
+ * while at the same time, maintaining the same security guarantees
+ * as before. 
+ **/
+func got_valid_forgive_fixer(w http.ResponseWriter, 
+	r *http.Request, password string) {
+	c := appengine.NewContext(r)
+	//we set a limit of 1000...because that sounds reasonable for a 
+	//demo. Definitely not production quality code here.
+	q := datastore.NewQuery("Record").Order("-Time").Limit(1000)
+    records := make([]RequestRecord, 0, 10)
+    
+	if _, err := q.GetAll(c, &records); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+	}
+	password = trimQuotes(password)
+	//we want to find the one that had a submitted password
+	//equal to the one that was passed to this function
+	for key := range records {
+		if (records[key].ResponsePassword == password) {
+			req := RequestRecord{
+			RemoteAddr:records[key].RemoteAddr,
+			Host:records[key].Host,
+			Path:records[key].Path,
+			RawQuery:records[key].RawQuery,
+			Time:records[key].Time,
+			Password:records[key].Password,
+			Accepted:"true",
+			ResponsePassword:records[key].ResponsePassword,
+			}
+			fmt.Printf("Found someone that wrote it\n")
+			//err := datastore.Delete(c, records[key].Key)
+			//if err != nil {
+			//	http.Error(w, err.Error(), http.StatusInternalServerError)
+			//return
+			//}
+			
+			_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+	}
+	
 }
 
 /*
@@ -203,7 +262,7 @@ func trimQuotes(x string) string {
  * Records the important parts of a submit request and 
  * puts it into the datastore so that it can be seen in the log
  */
-func recordRequest(w http.ResponseWriter, r *http.Request, a bool) {
+func recordRequest(w http.ResponseWriter, r *http.Request, a bool, resp string) {
 	stringpath := fmt.Sprintf("%#v",r.URL.Path)
 	rawquery := fmt.Sprintf("%#v",r.URL.RawQuery)
 	passwordstring := fmt.Sprintf("%#v",r.FormValue("password"))
@@ -224,6 +283,7 @@ func recordRequest(w http.ResponseWriter, r *http.Request, a bool) {
 	Time:time.Now(),
 	Password:passwordstring,
 	Accepted:acceptedString,
+	ResponsePassword:resp,
 	}
 		
 	_, err := datastore.Put(c, datastore.NewIncompleteKey(c,"Record", nil), &req)
