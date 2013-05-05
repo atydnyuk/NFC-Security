@@ -55,7 +55,7 @@
 %\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
 % --- End of Author Metadata ---
 
-\title{Security Layer On Top of NFC}
+\title{Writing A Security Protocol On Top of NFC}
 %\subtitle{[Extended Abstract]
 %  \titlenote{A full version of this paper is available as
 %    \textit{Author's Guide to Preparing ACM SIG Proceedings Using
@@ -115,15 +115,16 @@
 
 \maketitle
 \begin{abstract}
+
 Near Field Communication technology, or NFC as it is commonly called,
 is a wireless radio communication standard that can be used to
-exchange information between a device and a tag at a very close
-range. It is a lot like RFID, but where RFID tags can be scanned at a
-distance of meters, NFC tags need to be scanned at a distance of
-centimeters. The upshot of this is that NFC allows two-way
-communication as opposed to RFID tags that generally only support
-reading from the tag\footnote{Newer RFID tags actually allow writing,
-  but this is new and experimental}.
+exchange information between a device and a tag at close range. It is
+a lot like RFID, but where RFID tags can be scanned at a distance of
+meters, NFC tags need to be scanned at a distance of centimeters. The
+upshot of this is that NFC allows two-way communication as opposed to
+RFID tags that generally only support reading from the
+tag\footnote{Newer RFID tags actually allow writing, but this is new
+  and experimental}.
 
 This paper explores the possibility of adding a security protocol to
 NFC tags to allow secure location confirmation. For example, if a
@@ -173,22 +174,19 @@ proceedings paper, rather than with giving rigorous descriptions
 or explanations of such commands.
 
 \section{The {\secit Body} of The Paper}
-Typically, the body of a paper is organized
-into a hierarchical structure, with numbered or unnumbered
-headings for sections, subsections, sub-subsections, and even
-smaller sections.  The command \texttt{{\char'134}section} that
-precedes this paragraph is part of such a
-hierarchy.\footnote{This is the second footnote.  It
-starts a series of three footnotes that add nothing
-informational, but just give an idea of how footnotes work
-and look. It is a wordy one, just so you see
-how a longish one plays out.} \LaTeX\ handles the numbering
-and placement of these headings for you, when you use
-the appropriate heading commands around the titles
-of the headings.  If you want a sub-subsection or
-smaller part to be unnumbered in your output, simply append an
-asterisk to the command name.  Examples of both
-numbered and unnumbered headings will appear throughout the
+Typically, the body of a paper is organized into a hierarchical
+structure, with numbered or unnumbered headings for sections,
+subsections, sub-subsections, and even smaller sections.  The command
+\texttt{{\char'134}section} that precedes this paragraph is part of
+such a hierarchy.\footnote{This is the second footnote.  It starts a
+  series of three footnotes that add nothing informational, but just
+  give an idea of how footnotes work and look. It is a wordy one, just
+  so you see how a longish one plays out.} \LaTeX\ handles the
+numbering and placement of these headings for you, when you use the
+appropriate heading commands around the titles of the headings.  If
+you want a sub-subsection or smaller part to be unnumbered in your
+output, simply append an asterisk to the command name.  Examples of
+both numbered and unnumbered headings will appear throughout the
 balance of this sample document.
 
 Because the entire article is contained in
