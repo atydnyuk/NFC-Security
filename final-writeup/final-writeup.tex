@@ -126,17 +126,17 @@ RFID tags that generally only support reading from the
 tag\footnote{Newer RFID tags actually allow writing, but this is new
   and experimental}.
 
-This paper explores the possibility of adding a security protocol to
-NFC tags to allow secure location confirmation. For example, if a
+In this paper we explore the possibility of adding a security protocol
+to NFC tags to allow secure location confirmation. For example, if a
 restaurant wants to make sure that only people that have been to it
 can submit reviews, it can place an NFC tag at the entrance/exit and
 confirm that customers have scanned the tag before they are allowed to
 submit a review online. We explore several different tag-device setups
 under several attack scenarios. We show that it is possible to develop
 a secure protocol with an on-phone TPM and a dumb tag that does not do
-computation. If we relax the TPM requirement, we can have a ``good enough''
-solution that relies on the fact that only a certain fraction of users
-are malicious.
+computation. If we relax the TPM requirement, we can have a ``good
+enough'' solution that relies on the fact that only a certain fraction
+of users are malicious.
 \end{abstract}
 
 % A category with the (minimum) three required fields
@@ -147,115 +147,393 @@ are malicious.
 \keywords{NFC, Wireless, Security, TPM, Location Services, Simulation}
 
 \section{Introduction}
-The \textit{proceedings} are the records of a conference.
-ACM seeks to give these conference by-products a uniform,
-high-quality appearance.  To do this, ACM has some rigid
-requirements for the format of the proceedings documents: there
-is a specified format (balanced  double columns), a specified
-set of fonts (Arial or Helvetica and Times Roman) in
-certain specified sizes (for instance, 9 point for body copy),
-a specified live area (18 $\times$ 23.5 cm [7" $\times$ 9.25"]) centered on
-the page, specified size of margins (1.9 cm [0.75"]) top, (2.54 cm [1"]) bottom
-and (1.9 cm [.75"]) left and right; specified column width
-(8.45 cm [3.33"]) and gutter size (.83 cm [.33"]).
+NFC tag usage has been increasing since their mass production
+release. Tags are pretty cheap and versatile. Some popular uses of
+tags are to do location services such as checking in to places, or to
+change phone settings based on pre-defined rules. Some examples of the
+former are tags that are put up in front of restaurants or other
+commercial places that give you a code to a website to confirm that
+you have visited their location. This can be tied into different perks
+for the user such as discounts or sales. NFC tags can also be used for
+games or competitions that involve real-world locations. This can
+range from scavenger hunts that depend on the user scanning tags to
+get clues to games that assign territory based on number of visits to
+a particular location.
 
-The good news is, with only a handful of manual
-settings\footnote{Two of these, the {\texttt{\char'134 numberofauthors}}
-and {\texttt{\char'134 alignauthor}} commands, you have
-already used; another, {\texttt{\char'134 balancecolumns}}, will
-be used in your very last run of \LaTeX\ to ensure
-balanced column heights on the last page.}, the \LaTeX\ document
-class file handles all of this for you.
+All of these uses rely on the fact that there won't be truly malicious
+users. Tolerating a few fake requests submitted through the web,
+without ever visiting the tag is fine, but being protected against DOS
+and other attacks is another. If the NFC tag associated with the
+service supports writing, then a malicious user can write a different
+clue or password or URL to the tag and thereby deny service or worse,
+redirect service to his own malicious page. The only way to fix this
+is for someone in charge to visit the site and write the correct
+password back to the tag. This requires a human intervention for every
+malicious user, and is not a reasonable solution.
 
-The remainder of this document is concerned with showing, in
-the context of an ``actual'' document, the \LaTeX\ commands
-specifically available for denoting the structure of a
-proceedings paper, rather than with giving rigorous descriptions
-or explanations of such commands.
+On the other hand, if we disable writing and use a read-only tag we
+have a scenario where the password never changes. If the password
+never changes it can be put up online and accessed by anyone. While
+this might not be a worry for a local scavenger hunt that operates
+under an honor system, a review service operating in this scenario is
+rendered completely useless. If the tag was put in place to make sure
+that the reviews written are by actual past customers, the fact that
+you can put the password up online and get multiple uses out of it
+voids that guarantee.
 
-\section{The {\secit Body} of The Paper}
-Typically, the body of a paper is organized into a hierarchical
-structure, with numbered or unnumbered headings for sections,
-subsections, sub-subsections, and even smaller sections.  The command
-\texttt{{\char'134}section} that precedes this paragraph is part of
-such a hierarchy.\footnote{This is the second footnote.  It starts a
-  series of three footnotes that add nothing informational, but just
-  give an idea of how footnotes work and look. It is a wordy one, just
-  so you see how a longish one plays out.} \LaTeX\ handles the
-numbering and placement of these headings for you, when you use the
-appropriate heading commands around the titles of the headings.  If
-you want a sub-subsection or smaller part to be unnumbered in your
-output, simply append an asterisk to the command name.  Examples of
-both numbered and unnumbered headings will appear throughout the
-balance of this sample document.
+In light of these difficulties we present several different systems
+for dealing with attacks against an NFC tag based service. The
+protocols and assumptions may differ for each setup, but there are
+several commonalities. Each setup consists of three parts. There is a
+tag that is located at a specific location that we want to securely
+transmit, there is a device (phone) that will be scanning the tag, and
+there is a webserver that will keep track of all of the scans and be
+in charge of accepting or rejecting requests.
 
-Because the entire article is contained in
-the \textbf{document} environment, you can indicate the
-start of a new paragraph with a blank line in your
-input file; that is why this sentence forms a separate paragraph.
+We start our analysis by detailing several different attack
+models. Since there are a lot of attacks that can be done against this
+kind of service we cannot cover all of them, but we list what we
+believe to be the easiest to execute and the most debilitating for the
+service itself. We will briefly mention other attacks that we did not
+consider in our analysis and give reasoning for our choice.
 
-\subsection{Type Changes and {\subsecit Special} Characters}
-We have already seen several typeface changes in this sample.  You
-can indicate italicized words or phrases in your text with
-the command \texttt{{\char'134}textit}; emboldening with the
-command \texttt{{\char'134}textbf}
-and typewriter-style (for instance, for computer code) with
-\texttt{{\char'134}texttt}.  But remember, you do not
-have to indicate typestyle changes when such changes are
-part of the \textit{structural} elements of your
-article; for instance, the heading of this subsection will
-be in a sans serif\footnote{A third footnote, here.
-Let's make this a rather short one to
-see how it looks.} typeface, but that is handled by the
-document class file. Take care with the use
-of\footnote{A fourth, and last, footnote.}
-the curly braces in typeface changes; they mark
-the beginning and end of
-the text that is to be in the different typeface.
+After going over the different attacks we consider two different
+setups to protect our service. The first setup assumes an on-phone TPM
+that can be used to shield the user from accessing certain
+information. This setup is found to be very effective at preventing
+malicious users from affecting the service. With our protocol we
+manage to prevent all but one of the attacks that we detailed in the
+previous section and we do not drop any requests from honest
+users. This is the best possible result, but it requires an on-phone
+TPM which isn't something that is commercially available.
 
-You can use whatever symbols, accented characters, or
-non-English characters you need anywhere in your document;
-you can find a complete list of what is
-available in the \textit{\LaTeX\
-User's Guide}\cite{Lamport:LaTeX}.
+For the second setup, we relax the on-phone TPM requirement and
+consider the lowest cost case of an average phone with NFC
+reading/writing capabilities and a dumb tag that cannot do any
+computation. In this case, we find that the protocol is vulnerable to
+several attacks. Our solution to alleviate this problem is the
+addition of a reputation system. We propose that the website keep a
+reputation record for each user and show that this approach helps us
+keep malicious users out of the system with minimal impact to honest
+users as long as the fraction of malicious users is WE NEED ACTUAL
+DATA HERE.
 
-\subsection{Math Equations}
-You may want to display math equations in three distinct styles:
-inline, numbered or non-numbered display.  Each of
-the three are discussed in the next sections.
+At the end of the paper we go over some opportunities for further
+work.
 
-\subsubsection{Inline (In-text) Equations}
-A formula that appears in the running text is called an
-inline or in-text formula.  It is produced by the
-\textbf{math} environment, which can be
-invoked with the usual \texttt{{\char'134}begin. . .{\char'134}end}
-construction or with the short form \texttt{\$. . .\$}. You
-can use any of the symbols and structures,
-from $\alpha$ to $\omega$, available in
-\LaTeX\cite{Lamport:LaTeX}; this section will simply show a
-few examples of in-text equations in context. Notice how
-this equation: \begin{math}\lim_{n\rightarrow \infty}x=0\end{math},
-set here in in-line math style, looks slightly different when
-set in display style.  (See next section).
+\section{Attack Models}
+In this section we will consider the different attacks that our
+service will have to deal with. We will consider attacks in order
+based on the ease of execution.
 
-\subsubsection{Display Equations}
-A numbered display equation -- one set off by vertical space
-from the text and centered horizontally -- is produced
-by the \textbf{equation} environment. An unnumbered display
-equation is produced by the \textbf{displaymath} environment.
+\subsection{Bogus Submissions}
+Since the webserver is in charge of seperating the valid requests from
+the invalid ones, the easiest attack to execute is to send bogus
+requests to the webserver. This does not require ever being next to
+the tag and can be done by anyone from the comfort of their own
+house. 
 
-Again, in either environment, you can use any of the symbols
-and structures available in \LaTeX; this section will just
-give a couple of examples of display equations in context.
-First, consider the equation, shown as an inline equation above:
-\begin{equation}\lim_{n\rightarrow \infty}x=0\end{equation}
-Notice how it is formatted somewhat differently in
-the \textbf{displaymath}
-environment.  Now, we'll enter an unnumbered equation:
-\begin{displaymath}\sum_{i=0}^{\infty} x + 1\end{displaymath}
-and follow it with another numbered equation:
-\begin{equation}\sum_{i=0}^{\infty}x_i=\int_{0}^{\pi+2} f\end{equation}
-just to demonstrate \LaTeX's able handling of numbering.
+The attack model that we consider for this is a maximum of 1 request
+per second. While it might seem strange that we assume such a low
+rate, especially considering that scripts can pump out hundreds of
+requests per second from a single machine, dealing with DDOS is out of
+the scope of this paper. Since there is no way a legitimate user can
+scan more than one tag per second, it seems reasonable to limit the
+number of requests that can come from a single IP to one per second.
+
+\subsection{Publicizing the Password}
+This attack is arguably simpler than the last one mentioned, but it
+requires going to the actual location of the tag and scanning it. Once
+the tag is scanned, the content of the tag is put up online for anyone
+to access.
+
+The attack model for this is fairly simple as well. Since you actually
+need one person to go to the location, this attack is only harmful if
+the password has multiple uses. If it doesn't, this attack falls under
+another category that we will detail later.
+
+\subsection{Multiple Scan}
+This attack also involves a malicious user going to the location, but
+this time instead of just scanning the tag once, the user scans the
+tag multiple times. He then potentially walks away with several
+passwords that he can distribute online at will.
+
+For this attack, we accept that the passwords may be single-use, but
+the attacker can scan the tag an unlimited number of times if
+necessary and put the list up online. This way we get a similar effect
+to the \texttt{Publicized Password} attack, with the additional
+limitation that it takes more time for the user to stand and scan the
+tag several times. Since malicious users don't really need a reason to
+be malicious, we don't really regard it as a real limitation and just
+assume that there will be someone who is willing to stand at the tag
+for hours recording thousands of passwords.
+
+\subsection{Tag Modification}
+This is also an attack that involves a malicious user going to the
+location of the tag. In this scenario, the user writes garbage or
+malicious data to the tag. 
+
+For this attack we assume that the attacker can write anything to the
+tag and the frequency with which this happens is about once per hour
+plus 1/4 of the number of honest users that are using the service that
+hour. This is because there is a chance that an honest user pulls
+their phone away before the application has time to write to the
+tag. This also counts as a \texttt{Tag Modification} attack because
+the data on the tag is now out of sync with the webserver. This is a
+high estimate because we want to ensure that malicious users cannot
+deny multiple honest users from accessing the service with a single
+modification.
+
+\subsection{Man in the Middle}
+This attack requires the most effort on the attacker's part, and is
+also the most difficult to defend against. This attack involves an
+attacker scanning the tag, and instead of submitting the password,
+forwarding it to a friend. The rest of the protocol proceeds a fashion
+such that all communication between phone and webserver goes through
+the middleman that is pretending to be at the tag location.
+
+\subsection{Other Attacks}
+We never cover snooping attacks for the simple reason that NFC
+communication operates at a close range, so it is difficult to snoop
+on a communication between a phone and a tag without being painfully
+obvious to the honest user. We also never consider attacks on other
+layers of the network stack because that is out of the scope of this
+paper.
+
+\section{Protocol 1: Phone with TPM + Dumb Tag}
+
+\subsection{Outline}
+This is a quick rundown of the protocol:
+
+\begin{enumerate}
+\item The device reads the tag and the tag sends the device a code, $k$
+\item The key, $k$, goes into sealed storage
+\item The device sends the phone IMEI and $k$ to the webserver
+\item The webserver checks $k$ against the key that it is expecting
+\item The key matches so the webserver generates the next key, $l$, to write to the tag
+\item The webserver records the fact that the device's request was accepted
+\item The ACCEPTED message and $l$ are sent to the device 
+\item The device writes $l$ to the tag so the next person can use it
+\end{enumerate}
+
+That was a step by step overview of what happens when an honest user
+uses the protocol. The interesting stuff happens when malicious users
+enter the picture. For a comprehensive look at this we need to look at
+the different states that the protocol can be in depending on what
+requests it gets.
+
+\subsection{Protocol States}
+\begin{figure}
+\centering
+\psfig{file=Diagram1.jpg, height=2in, width=3in,}
+\caption{State diagram for NFC tag protocol}
+\end{figure}
+
+Figure 1 contains the state diagram that we have to consider. This
+diagram details the different ways that users can interact with the
+system and also shows the requests that should be accepted and
+rejected. There are three possible transitions between states. One is
+an honest user interacting with the system, one is a malicious user
+sending requests to the webserver directly, and the third is a
+malicious user defacing the NFC tag.
+
+From the description we can see that any request that moves the state
+of the system from good to bad should be rejected because it is
+malicious. Likewise, any request that moves the state from bad to good
+should be accepted because it is an honest user.
+
+\subsection{Argument for Correctness}
+We will refer to Figure 1 and argue that the protocol that we have
+described above guarantees all that we have described.
+
+If the tag is in a good state i.e. it contains the next password that
+the webserver is expecting, we can see that a sequence of honest users
+will not result to a change to a bad state. Each user will read the
+tag, submit the correct code to the server and then write the next
+correct code to the tag. However, if one of these honest users drags
+their phone away too fast, or if a malicious user comes in and defaces
+the tag, we transition to a bad state. 
+
+From this state, if an honest user comes in afterwards he will read
+the wrong key and his request will get rejected. To deal with this, we
+rely on the next honest request to fix our mistake. When a valid
+request is accepted, the webserver goes back and checks to make sure
+that the person that wrote that message to the tag gets their request
+accepted as well. This way, even though it looks like an honest user
+has to sacrifice a transaction to fix the state, we can actually roll
+back their rejection and approve it provided that another valid
+request comes in after them. It is worth noting that this only works
+with the TPM because otherwise malicious users can just pass codes
+around and confirm each other's requests.
+
+Now that we have covered two of the states we can look at the cases
+where requests get submitted from the web. If a request is submitted
+from the web, we assume that it is not going to be the right password
+since the chances of that happening are 1 in $2^{15}$ in our proof of
+concept implementation, and can be arbitrarily lower if we choose a
+longer cryptographically random key. If an incorrect request is sent
+from any state, the transition is to a bad state and the webserver
+will reject the request. After each transition to a bad state, the
+state will then switch back to the one it was at previously after a
+new password is generated. This guarantees that no web requests will
+affect the protocol.
+
+\section{Attack Prevention}
+\begin{table}
+\centering
+\caption{Attack Prevention Table for Protocol 1}
+\begin{tabular}{|c|c|l|} \hline
+Attack&Protocol 1&Protocol 2\\ \hline
+Bogus Submissions & YES & YES\\ \hline
+Publicizing the Password& YES & YES\\ \hline
+Multiple Scan& YES & YES\\ \hline
+Tag Modification& YES & Vote Lost\\ \hline
+Man In The Middle& YES & NO\\
+\hline\end{tabular}
+\end{table}
+
+
+Please refer to Figure 2 to see how our protocol fares against
+attacks. We can deal with bogus submissions as we argued with the
+state model. Each password has one use, so publicizing it has no real
+benefit. Multiple scans are disallowed by the web interface since the
+phone has to submit an IMEI with each request, and even if that is
+somehow avoided the requests are tied to the user scanning the tag so
+they cannot be passed to a third party. Tag modification is fixable
+with one honest user, and then that honest user can get their request
+accepted when another honest user scans the tag after them. A MITM
+attack can be prevented with the use of a TPM to hide the password
+from the user, thus preventing him from forwarding it to anyone.
+
+\section{Implementation}
+We have implemented a proof of concept for this protocol, but since we
+did not have a phone with a TPM on it we just worked under the
+assumption that the passwords that the web interface gave the users
+would be inaccessible. We tested the protocol with malicious and
+honest requests and showed that the state transitions that we expected
+were reproduceable in the real world.
+
+\section{Protocol 2: Phone without TPM + Dumb Tag}
+\subsection{Outline}
+This is a quick rundown of the protocol:
+
+\begin{enumerate}
+\item The device reads the tag and the tag sends the device a code, $k$
+\item The device sends the phone IMEI and $k$ to the webserver
+\item The webserver checks $k$ against the key that it is expecting
+\item The key matches so the webserver generates the next key, $l$, to write to the tag
+\item The webserver records the fact that the device's request was accepted
+\item The ACCEPTED message and $l$ are sent to the device 
+\item The device writes $l$ to the tag so the next person can use it
+\end{enumerate}
+
+If you compare this protocol to the one that we just considered, you
+can see that there are almost no differences. The protocol is
+practically the same, but now we have relaxed the requirement of an
+on-phone TPM. This is very significant, because it means that
+malicious users have unfettered access to the keys sent to them
+by the webserver and tag. 
+
+\section{Attack Prevention}
+For this protocol we cannot really show correctness because we don't
+actually have it. What we do have is a very good system for minimizing
+the possible damage that the attacks can do. 
+
+Please refer to Figure 2 to see how our protocol fares against
+attacks. We can deal with bogus submissions the same way that we did
+in the first protocol. In this regard, nothing has changed. False
+requests have no real impact. Each password has one use, so
+publicizing it has no real benefit. Multiple scans are disallowed by
+the web interface since the phone has to submit an IMEI with each
+request, and even if that is somehow avoided the requests are tied to
+the user scanning the tag so they cannot be passed to a third party en
+masse. What can happen is that it can be passed a single time (a man
+in the middle attack that we will discuss below). Tag modification is
+fixable with one honest user, but in this case we cannot roll the log
+back and re-accept the user that fixed the tag. This is because we
+have no guarantee that two malicious users won't get together and
+confirm each other's requests. All it takes in this scenario is for
+one to submit a faulty request, and then pass the new password that he
+is given to his friend. That way both of them now have valid entries
+in the log. Because of this, we have to turn this feature off and deal
+with the fact that every time a malicious user modifies the tag, we
+will use one honest user's submission. We can implement a clever
+mechanism to deal with this to prevent it from becoming a real
+problem. Unfortunately, a MITM attack has full reign under this
+protocol because we have no means to prevent people from passing their
+keys to other users. We argue that this isn't really all that bad
+considering the fact that at least someone has to be at the location
+and that MITM requires some coordination because it has to be
+completed before another user walks up to the tag and scans it. Since
+there isn't a good way to prevent MITM with a dumb tag and a phone
+that can't shield information from the user, we will focus on cutting
+down the number of malicious users in the system in general to lessen
+their effect on the good users.
+
+\subsection{Reputation System}
+A reputation system seems like the obvious choice for this
+scenario. If users have to authenticate to the webserver and if their
+acceptances and rejections are tied to their account, it makes it very
+difficult for repeat offenders to affect the system. Privacy is a
+concern, but in this case the only thing that the reputation system
+has to tie to the user is the number of times their requests have been
+accepted or rejected. We do not need to know where exactly these
+requests came from, so it can't really be tied to a real identity.
+
+The way that we propose to do the reputation system involves adding
+certain numbers of strikes to users for actions that are possibly
+malicious. These actions are associated with being one of the people
+around the transitions to the bad states in the state diagram in
+Figure 1. If the same user is seen transitioning the system to a bad
+state it is safe to assume that he is a malicious user, and then he
+can be banned from the system. This prevents outlying malicious users
+from flooding the system with bad requests and repeatedly defacing the
+tag, which as we covered above, results in the loss of good votes.
+
+Since it is hard to tell how a reputation system will work without
+trying it first, we ran several simulations.
+
+\subsection{Simulations}
+We ran the simulations in a similar way. We had several threads for
+malicious users, and a thread for honest users. We ran each simulation
+for 30 simulated days and collected data at the end for the number of
+good requests that were dropped from the log. The variables that we
+tweaked in the simulation were the ratio of malicious users to good
+users, frequency of dedicated attacks and the popularity of the
+location itself. These variables were reflected in the timing of the
+threads. For example, in a system that is very popular and with a
+small fraction of malicious users we have the good thread printing
+often, and the malicious threads printing rarely. We then parse the
+resulting logfile and compare the number of confirmed accepted
+requests to the expected number. We return the result as a percentage.
+
+Our data can be seen in Figure 3. As you can see, we see very good
+results with a majority of the requests being accepted even for
+locations that aren't very popular and have a large number of
+malicious users.
+
+\section{Results}
+We can see from the results of the simulation that the second protocol
+works fairly well even without a TPM. This is the lowest cost solution
+that we can hope for, and with the addition of a reputation system we
+can have a fairly stable system that is relatively resistant to
+attacks by malicious users.
+
+Of course the better alternative is to use the first protocol where we
+dont have to bother with a reputation system and don't have to worry
+about MITM attacks, but no commercial phone currently has a TPM on
+it. It might be a reasonable thing to expect in the future since a lot
+of laptops are currently being released with TPMs built in, but it is
+not a reasonable thing to expect in the next year.
+
+\section{Further Research}
+This paper focused heavily on the webserver and the device side of the
+problem. If we consider tags that have timing code or can
+cryptographically sign messages we can consider other possible
+solutions. Dumb tags are the most common form right now and will
+definitely be cheaper than the smarter alternative, so any protocol
+that assumes a smart tag has to look to the future in terms of
+real-world implementation.
 
 \subsection{Citations}
 Citations to articles \cite{bowman:reasoning,
@@ -285,211 +563,6 @@ of the citation command, using \texttt{{\char'134}cite}.
 This is what is stipulated in the SIGS style specifications.
 No other citation format is endorsed or supported.
 
-\subsection{Tables}
-Because tables cannot be split across pages, the best
-placement for them is typically the top of the page
-nearest their initial cite.  To
-ensure this proper ``floating'' placement of tables, use the
-environment \textbf{table} to enclose the table's contents and
-the table caption.  The contents of the table itself must go
-in the \textbf{tabular} environment, to
-be aligned properly in rows and columns, with the desired
-horizontal and vertical rules.  Again, detailed instructions
-on \textbf{tabular} material
-is found in the \textit{\LaTeX\ User's Guide}.
-
-Immediately following this sentence is the point at which
-Table 1 is included in the input file; compare the
-placement of the table here with the table in the printed
-dvi output of this document.
-
-\begin{table}
-\centering
-\caption{Frequency of Special Characters}
-\begin{tabular}{|c|c|l|} \hline
-Non-English or Math&Frequency&Comments\\ \hline
-\O & 1 in 1,000& For Swedish names\\ \hline
-$\pi$ & 1 in 5& Common in math\\ \hline
-\$ & 4 in 5 & Used in business\\ \hline
-$\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
-\hline\end{tabular}
-\end{table}
-
-To set a wider table, which takes up the whole width of
-the page's live area, use the environment
-\textbf{table*} to enclose the table's contents and
-the table caption.  As with a single-column table, this wide
-table will ``float" to a location deemed more desirable.
-Immediately following this sentence is the point at which
-Table 2 is included in the input file; again, it is
-instructive to compare the placement of the
-table here with the table in the printed dvi
-output of this document.
-
-
-\begin{table*}
-\centering
-\caption{Some Typical Commands}
-\begin{tabular}{|c|c|l|} \hline
-Command&A Number&Comments\\ \hline
-\texttt{{\char'134}alignauthor} & 100& Author alignment\\ \hline
-\texttt{{\char'134}numberofauthors}& 200& Author enumeration\\ \hline
-\texttt{{\char'134}table}& 300 & For tables\\ \hline
-\texttt{{\char'134}table*}& 400& For wider tables\\ \hline\end{tabular}
-\end{table*}
-% end the environment with {table*}, NOTE not {table}!
-
-\subsection{Figures}
-Like tables, figures cannot be split across pages; the
-best placement for them
-is typically the top or the bottom of the page nearest
-their initial cite.  To ensure this proper ``floating'' placement
-of figures, use the environment
-\textbf{figure} to enclose the figure and its caption.
-
-This sample document contains examples of \textbf{.eps}
-and \textbf{.ps} files to be displayable with \LaTeX.  More
-details on each of these is found in the \textit{Author's Guide}.
-
-\begin{figure}
-\centering
-\epsfig{file=fly.eps}
-\caption{A sample black and white graphic (.eps format).}
-\end{figure}
-
-\begin{figure}
-\centering
-\epsfig{file=fly.eps, height=1in, width=1in}
-\caption{A sample black and white graphic (.eps format)
-that has been resized with the \texttt{epsfig} command.}
-\end{figure}
-
-
-As was the case with tables, you may want a figure
-that spans two columns.  To do this, and still to
-ensure proper ``floating'' placement of tables, use the environment
-\textbf{figure*} to enclose the figure and its caption.
-and don't forget to end the environment with
-{figure*}, not {figure}!
-
-\begin{figure*}
-\centering
-\epsfig{file=flies.eps}
-\caption{A sample black and white graphic (.eps format)
-that needs to span two columns of text.}
-\end{figure*}
-
-Note that either {\textbf{.ps}} or {\textbf{.eps}} formats are
-used; use
-the \texttt{{\char'134}epsfig} or \texttt{{\char'134}psfig}
-commands as appropriate for the different file types.
-
-\begin{figure}
-\centering
-\psfig{file=rosette.ps, height=1in, width=1in,}
-\caption{A sample black and white graphic (.ps format) that has
-been resized with the \texttt{psfig} command.}
-\vskip -6pt
-\end{figure}
-
-\subsection{Theorem-like Constructs}
-Other common constructs that may occur in your article are
-the forms for logical constructs like theorems, axioms,
-corollaries and proofs.  There are
-two forms, one produced by the
-command \texttt{{\char'134}newtheorem} and the
-other by the command \texttt{{\char'134}newdef}; perhaps
-the clearest and easiest way to distinguish them is
-to compare the two in the output of this sample document:
-
-This uses the \textbf{theorem} environment, created by
-the\linebreak\texttt{{\char'134}newtheorem} command:
-\newtheorem{theorem}{Theorem}
-\begin{theorem}
-Let $f$ be continuous on $[a,b]$.  If $G$ is
-an antiderivative for $f$ on $[a,b]$, then
-\begin{displaymath}\int^b_af(t)dt = G(b) - G(a).\end{displaymath}
-\end{theorem}
-
-The other uses the \textbf{definition} environment, created
-by the \texttt{{\char'134}newdef} command:
-\newdef{definition}{Definition}
-\begin{definition}
-If $z$ is irrational, then by $e^z$ we mean the
-unique number which has
-logarithm $z$: \begin{displaymath}{\log e^z = z}\end{displaymath}
-\end{definition}
-
-Two lists of constructs that use one of these
-forms is given in the
-\textit{Author's  Guidelines}.
- 
-There is one other similar construct environment, which is
-already set up
-for you; i.e. you must \textit{not} use
-a \texttt{{\char'134}newdef} command to
-create it: the \textbf{proof} environment.  Here
-is a example of its use:
-\begin{proof}
-Suppose on the contrary there exists a real number $L$ such that
-\begin{displaymath}
-\lim_{x\rightarrow\infty} \frac{f(x)}{g(x)} = L.
-\end{displaymath}
-Then
-\begin{displaymath}
-l=\lim_{x\rightarrow c} f(x)
-= \lim_{x\rightarrow c}
-\left[ g{x} \cdot \frac{f(x)}{g(x)} \right ]
-= \lim_{x\rightarrow c} g(x) \cdot \lim_{x\rightarrow c}
-\frac{f(x)}{g(x)} = 0\cdot L = 0,
-\end{displaymath}
-which contradicts our assumption that $l\neq 0$.
-\end{proof}
-
-Complete rules about using these environments and using the
-two different creation commands are in the
-\textit{Author's Guide}; please consult it for more
-detailed instructions.  If you need to use another construct,
-not listed therein, which you want to have the same
-formatting as the Theorem
-or the Definition\cite{salas:calculus} shown above,
-use the \texttt{{\char'134}newtheorem} or the
-\texttt{{\char'134}newdef} command,
-respectively, to create it.
-
-\subsection*{A {\secit Caveat} for the \TeX\ Expert}
-Because you have just been given permission to
-use the \texttt{{\char'134}newdef} command to create a
-new form, you might think you can
-use \TeX's \texttt{{\char'134}def} to create a
-new command: \textit{Please refrain from doing this!}
-Remember that your \LaTeX\ source code is primarily intended
-to create camera-ready copy, but may be converted
-to other forms -- e.g. HTML. If you inadvertently omit
-some or all of the \texttt{{\char'134}def}s recompilation will
-be, to say the least, problematic.
-
-\section{Conclusions}
-This paragraph will end the body of this sample document.
-Remember that you might still have Acknowledgments or
-Appendices; brief samples of these
-follow.  There is still the Bibliography to deal with; and
-we will make a disclaimer about that here: with the exception
-of the reference to the \LaTeX\ book, the citations in
-this paper are to articles which have nothing to
-do with the present subject and are used as
-examples only.
-%\end{document}  % This is where a 'short' article might terminate
-
-%ACKNOWLEDGMENTS are optional
-\section{Acknowledgments}
-This section is optional; it is a location for you
-to acknowledge grants, funding, editing assistance and
-what have you.  In the present case, for example, the
-authors would like to thank Gerald Murray of ACM for
-his help in codifying this \textit{Author's Guide}
-and the \textbf{.cls} and \textbf{.tex} files that it describes.
-
 %
 % The following two commands are all you need in the
 % initial runs of your .tex file to
@@ -503,53 +576,14 @@ and the \textbf{.cls} and \textbf{.tex} files that it describes.
 %
 % ACM needs 'a single self-contained file'!
 %
-%APPENDICES are optional
-%\balancecolumns
-\appendix
-%Appendix A
-\section{Headings in Appendices}
-The rules about hierarchical headings discussed above for
-the body of the article are different in the appendices.
-In the \textbf{appendix} environment, the command
-\textbf{section} is used to
-indicate the start of each Appendix, with alphabetic order
-designation (i.e. the first is A, the second B, etc.) and
-a title (if you include one).  So, if you need
-hierarchical structure
-\textit{within} an Appendix, start with \textbf{subsection} as the
-highest level. Here is an outline of the body of this
-document in Appendix-appropriate form:
-\subsection{Introduction}
-\subsection{The Body of the Paper}
-\subsubsection{Type Changes and  Special Characters}
-\subsubsection{Math Equations}
-\paragraph{Inline (In-text) Equations}
-\paragraph{Display Equations}
-\subsubsection{Citations}
-\subsubsection{Tables}
-\subsubsection{Figures}
-\subsubsection{Theorem-like Constructs}
-\subsubsection*{A Caveat for the \TeX\ Expert}
-\subsection{Conclusions}
-\subsection{Acknowledgments}
-\subsection{Additional Authors}
-This section is inserted by \LaTeX; you do not insert it.
-You just add the names and information in the
-\texttt{{\char'134}additionalauthors} command at the start
-of the document.
 \subsection{References}
 Generated by bibtex from your ~.bib file.  Run latex,
 then bibtex, then latex twice (to resolve references)
 to create the ~.bbl file.  Insert that ~.bbl file into
 the .tex source file and comment out
 the command \texttt{{\char'134}thebibliography}.
-% This next section command marks the start of
-% Appendix B, and does not continue the present hierarchy
-\section{More Help for the Hardy}
-The sig-alternate.cls file itself is chock-full of succinct
-and helpful comments.  If you consider yourself a moderately
-experienced to expert user of \LaTeX, you may find reading
-it useful but please remember not to change it.
+
+
 %\balancecolumns % GM June 2007
 % That's all folks!
 \end{document}
