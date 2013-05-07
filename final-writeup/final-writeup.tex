@@ -215,8 +215,8 @@ several attacks. Our solution to alleviate this problem is the
 addition of a reputation system. We propose that the website keep a
 reputation record for each user and show that this approach helps us
 keep malicious users out of the system with minimal impact to honest
-users as long as the fraction of malicious users is WE NEED ACTUAL
-DATA HERE.
+users as long as the the number of malicious users is about a tenth of
+the number of honest users.
 
 At the end of the paper we go over some opportunities for further
 work.
@@ -274,15 +274,10 @@ location of the tag. In this scenario, the user writes garbage or
 malicious data to the tag. 
 
 For this attack we assume that the attacker can write anything to the
-tag and the frequency with which this happens is about once per hour
-plus 1/4 of the number of honest users that are using the service that
-hour. This is because there is a chance that an honest user pulls
-their phone away before the application has time to write to the
-tag. This also counts as a \texttt{Tag Modification} attack because
-the data on the tag is now out of sync with the webserver. This is a
-high estimate because we want to ensure that malicious users cannot
-deny multiple honest users from accessing the service with a single
-modification.
+tag and the frequency with which this happens is proportionate to the
+number of malicious users in the system. We assume that this kind of
+attack does not happen that often due to the requirement that the
+malicious user has to be in range of the tag itself.
 
 \subsection{Man in the Middle}
 This attack requires the most effort on the attacker's part, and is
@@ -378,7 +373,7 @@ state will then switch back to the one it was at previously after a
 new password is generated. This guarantees that no web requests will
 affect the protocol.
 
-\section{Attack Prevention}
+\subsection{Attack Prevention}
 \begin{table}
 \centering
 \caption{Attack Prevention Table for Protocol 1}
@@ -405,7 +400,7 @@ accepted when another honest user scans the tag after them. A MITM
 attack can be prevented with the use of a TPM to hide the password
 from the user, thus preventing him from forwarding it to anyone.
 
-\section{Implementation}
+\subsection{Implementation}
 We have implemented a proof of concept for this protocol, but since we
 did not have a phone with a TPM on it we just worked under the
 assumption that the passwords that the web interface gave the users
@@ -434,7 +429,7 @@ on-phone TPM. This is very significant, because it means that
 malicious users have unfettered access to the keys sent to them
 by the webserver and tag. 
 
-\section{Attack Prevention}
+\subsection{Attack Prevention}
 For this protocol we cannot really show correctness because we don't
 actually have it. What we do have is a very good system for minimizing
 the possible damage that the attacks can do. 
@@ -473,8 +468,8 @@ their effect on the good users.
 \subsection{Reputation System}
 A reputation system seems like the obvious choice for this
 scenario. If users have to authenticate to the webserver and if their
-acceptances and rejections are tied to their account, it makes it very
-difficult for repeat offenders to affect the system. Privacy is a
+acceptances and rejections are tied to their account, it makes it
+harder for repeat offenders to affect the system. Privacy is a
 concern, but in this case the only thing that the reputation system
 has to tie to the user is the number of times their requests have been
 accepted or rejected. We do not need to know where exactly these
@@ -499,18 +494,43 @@ malicious users, and a thread for honest users. We ran each simulation
 for 30 simulated days and collected data at the end for the number of
 good requests that were dropped from the log. The variables that we
 tweaked in the simulation were the ratio of malicious users to good
-users, frequency of dedicated attacks and the popularity of the
-location itself. These variables were reflected in the timing of the
-threads. For example, in a system that is very popular and with a
-small fraction of malicious users we have the good thread printing
-often, and the malicious threads printing rarely. We then parse the
-resulting logfile and compare the number of confirmed accepted
-requests to the expected number. We return the result as a percentage.
+users and the number of requests issued to the service. These
+variables were reflected in the timing of the threads. For example, in
+a system that is very popular and with a small fraction of malicious
+users we have the good thread printing often, and the malicious
+threads printing rarely. We then parse the resulting logfile and
+compare the number of confirmed accepted requests to the expected
+number. We return the result as a percentage.
 
-Our data can be seen in Figure 3. As you can see, we see very good
-results with a majority of the requests being accepted even for
-locations that aren't very popular and have a large number of
-malicious users.
+When we ran the simulations without a reputation system, the number of
+honest user requests that was dropped was pretty much equal to the
+number of tag defacements that occurred during the simulation. This
+makes intuitive sense because every time a tag is brought out of sync,
+a good user has to sacrifice a vote in order to sync it up again. With
+the addition of a reputation system, however, the numbers that we got
+were always lower than without the system. Especially when the
+malicious users were small in number, they got weeded out of the
+system fairly quickly. This bodes well for the system because since
+the users have to be at the physical location, it prevents several
+users that live or work in the vicinity from strongly affecting honest
+users.
+
+We did not take into account malicious requests sent from the web
+because they would not affect our protocol either way. With the
+reputation system however, they would actually improve results and
+allow us to stop malicious users even faster. Please refer to Table 2
+for the results of the simulations:
+
+\begin{table}
+\centering
+\caption{Simulations of Protocol 2}
+\begin{tabular}{|c|c|c|l|} \hline
+Total Requests&Bad Users&Reputation Enabled&\% Dropped\\ \hline
+3058&100&NO&10.16\\ \hline
+2976&100&YES&9.22\\ \hline
+2187&10&YES&1.72\\ \hline
+\hline\end{tabular}
+\end{table}
 
 \section{Results}
 We can see from the results of the simulation that the second protocol
@@ -535,55 +555,5 @@ definitely be cheaper than the smarter alternative, so any protocol
 that assumes a smart tag has to look to the future in terms of
 real-world implementation.
 
-\subsection{Citations}
-Citations to articles \cite{bowman:reasoning,
-clark:pct, braams:babel, herlihy:methodology},
-conference proceedings \cite{clark:pct} or
-books \cite{salas:calculus, Lamport:LaTeX} listed
-in the Bibliography section of your
-article will occur throughout the text of your article.
-You should use BibTeX to automatically produce this bibliography;
-you simply need to insert one of several citation commands with
-a key of the item cited in the proper location in
-the \texttt{.tex} file \cite{Lamport:LaTeX}.
-The key is a short reference you invent to uniquely
-identify each work; in this sample document, the key is
-the first author's surname and a
-word from the title.  This identifying key is included
-with each item in the \texttt{.bib} file for your article.
 
-The details of the construction of the \texttt{.bib} file
-are beyond the scope of this sample document, but more
-information can be found in the \textit{Author's Guide},
-and exhaustive details in the \textit{\LaTeX\ User's
-Guide}\cite{Lamport:LaTeX}.
-
-This article shows only the plainest form
-of the citation command, using \texttt{{\char'134}cite}.
-This is what is stipulated in the SIGS style specifications.
-No other citation format is endorsed or supported.
-
-%
-% The following two commands are all you need in the
-% initial runs of your .tex file to
-% produce the bibliography for the citations in your paper.
-\bibliographystyle{abbrv}
-\bibliography{sigproc}  % sigproc.bib is the name of the Bibliography in this case
-% You must have a proper ".bib" file
-%  and remember to run:
-% latex bibtex latex latex
-% to resolve all references
-%
-% ACM needs 'a single self-contained file'!
-%
-\subsection{References}
-Generated by bibtex from your ~.bib file.  Run latex,
-then bibtex, then latex twice (to resolve references)
-to create the ~.bbl file.  Insert that ~.bbl file into
-the .tex source file and comment out
-the command \texttt{{\char'134}thebibliography}.
-
-
-%\balancecolumns % GM June 2007
-% That's all folks!
 \end{document}
